@@ -3,19 +3,21 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
-<meta name="theme-color" content="#0b0b0e">
+<meta name="theme-color" content="#0a0a0e">
 <meta name="description" content="Was schauen wir heute? Filme & Serien entdecken, swipen, merken – mit Streaming-Verfügbarkeit für Deutschland.">
-<meta property="og:title" content="FILMLISTE – Was schauen wir heute?">
+<meta property="og:title" content="Filmliste – Was schauen wir heute?">
 <meta property="og:description" content="Filme & Serien entdecken, swipen, merken. Mit Top-Rankings und Streaming-Infos.">
 <meta property="og:type" content="website">
+<meta property="og:image" content="app-icon.png">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <link rel="manifest" href="manifest.json">
-<link rel="icon" href="icon.svg" type="image/svg+xml">
-<title>FILMLISTE – Was schauen wir heute?</title>
+<link rel="icon" href="app-icon.png" type="image/png">
+<link rel="apple-touch-icon" href="app-icon.png">
+<title>Filmliste – Was schauen wir heute?</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Bebas+Neue&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Bebas+Neue&family=Cormorant+Garamond:wght@500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="styles.css">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.158.0/build/three.min.js"></script>
@@ -26,23 +28,34 @@
 </head>
 <body>
 
+<!-- Liquid-Glass-Refraktion: Displacement-Map für backdrop-filter (Chromium) -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <filter id="lg-dist" x="-25%" y="-25%" width="150%" height="150%" color-interpolation-filters="sRGB">
+    <feTurbulence type="fractalNoise" baseFrequency="0.006 0.014" numOctaves="2" seed="7" result="noise"/>
+    <feGaussianBlur in="noise" stdDeviation="2.2" result="soft"/>
+    <feDisplacementMap in="SourceGraphic" in2="soft" scale="46" xChannelSelector="R" yChannelSelector="G"/>
+  </filter>
+</svg>
+
 <canvas id="bgCanvas"></canvas>
 
 <!-- ====== Header ====== -->
 <header id="appHeader" style="display:none">
   <div class="header-inner">
-    <div class="logo" data-go="discover">FILM<span>LISTE</span></div>
+    <div class="logo" data-go="discover">
+      <img src="app-icon.png" alt="" onerror="this.style.display='none'">
+      <span class="name">Filmliste</span>
+    </div>
     <nav class="tabs desktop-only" id="mainTabs"></nav>
     <div class="spacer"></div>
-    <button class="hbtn" id="surpriseBtn" title="Überrasch mich"><span data-ic="dice" data-size="20"></span></button>
-    <button class="hbtn" id="searchHBtn" title="Suche"><span data-ic="search" data-size="20"></span></button>
+    <button class="hbtn" id="surpriseBtn" title="Überrasch mich"><span data-ic="sparkles" data-size="20"></span></button>
     <div style="position:relative" id="acctWrap">
       <button class="hbtn" id="loginBtn" title="Anmelden"><span data-ic="user" data-size="20"></span></button>
       <div class="avatar" id="avatar" style="display:none">?</div>
-      <div class="menu" id="acctMenu">
+      <div class="menu liquid" id="acctMenu">
         <div class="who" id="whoami"></div>
         <hr>
-        <button class="item" id="prefsBtn"><span data-ic="sliders"></span> Genre-Einstellungen</button>
+        <button class="item" id="prefsBtn"><span data-ic="sliders"></span> Einstellungen</button>
         <button class="item" id="exportBtn"><span data-ic="down"></span> Listen exportieren</button>
         <button class="item" id="importBtn"><span data-ic="up"></span> Listen importieren</button>
         <hr>
@@ -55,7 +68,7 @@
 
 <!-- ====== TMDB-Setup (Fallback) ====== -->
 <div id="setup">
-  <div class="logo">FILM<span>LISTE</span></div>
+  <div class="logo"><img src="app-icon.png" alt="" style="width:34px;border-radius:9px"> <span class="name serif" style="font-size:1.6rem">Filmliste</span></div>
   <p>Diese App braucht einen kostenlosen API-Schlüssel von <b>TMDB</b>.</p>
   <ol>
     <li><a href="https://www.themoviedb.org/signup" target="_blank">themoviedb.org/signup</a></li>
@@ -70,34 +83,43 @@
 
   <!-- ====== Dashboard ====== -->
   <section id="view-discover">
+    <div class="quick-genres" id="quickGenres">
+      <div class="seg small" id="typePills" style="flex:0 0 auto">
+        <button class="active" data-type="movie">Filme</button>
+        <button data-type="tv">Serien</button>
+      </div>
+    </div>
+
     <div class="billboard" id="billboard">
       <div class="bb-img-wrap">
         <img class="bb-img" id="bbImgA" alt="">
         <img class="bb-img" id="bbImgB" alt="">
       </div>
-      <div class="bb-vignette"></div>
-      <div class="bb-grad"></div>
       <div class="bb-grain"></div>
-      <div class="type-pills" id="typePills">
-        <button class="active" data-type="movie">Filme</button>
-        <button data-type="tv">Serien</button>
-      </div>
-      <div class="bb-content" id="bbContent">
-        <div class="bb-tag" id="bbTag">Trending diese Woche</div>
-        <h1 class="bb-title" id="bbTitle"></h1>
-        <div class="bb-meta" id="bbMeta"></div>
-        <p class="bb-overview" id="bbOverview"></p>
-        <div class="bb-actions">
-          <button class="btn primary big" id="bbSave"><span data-ic="bookmark"></span> Merken</button>
-          <button class="btn glass big" id="bbInfo"><span data-ic="info"></span> Details</button>
+      <div class="bb-fade"></div>
+      <div class="bb-split">
+        <div class="bb-left">
+          <div class="bb-tag" id="bbTag">Top Pick für dich</div>
+          <h1 class="bb-title" id="bbTitle"></h1>
+          <div class="bb-meta" id="bbMeta"></div>
+          <p class="bb-overview" id="bbOverview"></p>
+          <div class="bb-rating" id="bbRating"></div>
+          <div class="bb-actions">
+            <button class="btn primary big" id="bbInfo"><span data-ic="play" data-size="14"></span> Details ansehen</button>
+            <button class="btn glass liquid big" id="bbSave"><span data-ic="bookmark"></span> Speichern</button>
+          </div>
+          <div class="bb-dots" id="bbDots"></div>
         </div>
-        <div class="bb-dots" id="bbDots"></div>
+        <div class="bb-right">
+          <img class="bb-poster" id="bbPoster" alt="">
+        </div>
       </div>
     </div>
+
     <div class="rows" id="rows"></div>
   </section>
 
-  <!-- ====== Ranking-Grid („Mehr anzeigen“) ====== -->
+  <!-- ====== Ranking-Grid ====== -->
   <section id="view-grid" style="display:none">
     <div class="grid-head">
       <button class="btn ghost" id="gridBack"><span data-ic="back"></span></button>
@@ -109,7 +131,7 @@
     <div class="chips scroll-x" id="genreChips"></div>
     <div class="grid" id="discoverGrid"></div>
     <div class="spinner" id="discoverSpinner" style="display:none">Lade …</div>
-    <button class="btn load-more" id="loadMoreBtn" style="display:none">Mehr laden</button>
+    <button class="btn load-more liquid" id="loadMoreBtn" style="display:none">Mehr laden</button>
   </section>
 
   <!-- ====== Swipe ====== -->
@@ -117,8 +139,8 @@
     <canvas id="swipeCanvas"></canvas>
     <div class="deck-wrap">
       <div class="swipe-gear">
-        <button class="hbtn glassy" id="swipeGearBtn" title="Einstellungen"><span data-ic="gear" data-size="19"></span></button>
-        <div class="swipe-pop" id="swipePop">
+        <button class="hbtn liquid" id="swipeGearBtn" title="Einstellungen"><span data-ic="gear" data-size="19"></span></button>
+        <div class="swipe-pop liquid" id="swipePop">
           <div class="seg small" id="swipeTypeSeg">
             <button class="active" data-type="movie">Filme</button>
             <button data-type="tv">Serien</button>
@@ -165,7 +187,7 @@
     <div class="empty" id="searchEmpty"><div class="ico-big" data-ic="search"></div>Durchsuche Millionen Filme &amp; Serien.</div>
   </section>
 
-  <!-- ====== Bibliothek (Merkliste + Gesehen + Listen) ====== -->
+  <!-- ====== Bibliothek ====== -->
   <section id="view-library" style="display:none">
     <div class="controls">
       <div class="seg" id="libSeg">
@@ -190,11 +212,12 @@
 
 </main>
 
-<!-- ====== Bottom-Nav ====== -->
-<nav class="bottom-nav" id="bottomNav">
-  <button data-go="discover" class="active"><span data-ic="home" data-size="22"></span><span>Start</span></button>
+<!-- ====== Bottom-Nav (Liquid Glass) ====== -->
+<nav class="bottom-nav liquid" id="bottomNav">
+  <button data-go="discover" class="active"><span data-ic="home" data-size="22"></span><span>Home</span></button>
   <button data-go="swipe"><span data-ic="cards" data-size="22"></span><span>Swipe</span></button>
   <button data-go="library"><span data-ic="bookmark" data-size="22"></span><span>Bibliothek</span></button>
+  <button data-go="search"><span data-ic="search" data-size="22"></span><span>Suchen</span></button>
 </nav>
 
 <!-- ====== Detail-Sheet ====== -->
@@ -234,17 +257,23 @@
   </div>
 </div>
 
-<!-- ====== Genre-Einstellungen ====== -->
+<!-- ====== Einstellungen ====== -->
 <div class="modal-overlay" id="prefsOverlay">
   <div class="dialog wide">
     <button class="close" id="prefsClose"><span data-ic="x"></span></button>
-    <h2>Genre-Einstellungen</h2>
-    <p>Einmal tippen = <b style="color:#ff4d55">Favorit</b> · zweimal = <b style="color:var(--muted)">ausblenden</b> · dreimal = zurücksetzen.</p>
-    <div class="pref-legend">
-      <span><span class="dot" style="background:var(--red)"></span>Favorit: eigene Reihe &amp; mehr im Swipe</span>
-      <span><span class="dot" style="background:#3a3a42"></span>Ausgeblendet: taucht nicht mehr auf</span>
-    </div>
-    <div class="chips" id="prefChips"></div>
+    <h2>Einstellungen</h2>
+
+    <div class="section-label">Meine Streaming-Abos</div>
+    <p style="margin-bottom:10px">In der Detailansicht siehst du dann sofort, ob ein Titel in deinem Abo enthalten ist.</p>
+    <div class="chips" id="prefSubs"><div class="spinner" style="padding:10px">Lade Anbieter …</div></div>
+
+    <div class="section-label">Lieblings-Genres</div>
+    <p style="margin-bottom:10px">Bekommen eigene Reihen auf der Startseite und mehr Gewicht im Swipe.</p>
+    <div class="chips" id="prefFav"></div>
+
+    <div class="section-label">Ausgeblendete Genres</div>
+    <p style="margin-bottom:10px">Tauchen in Empfehlungen nicht mehr auf (Suche zeigt weiterhin alles).</p>
+    <div class="chips" id="prefHide"></div>
   </div>
 </div>
 

@@ -18,6 +18,8 @@ const hasGsap = typeof gsap !== "undefined";
 if (hasGsap && typeof ScrollTrigger !== "undefined") gsap.registerPlugin(ScrollTrigger);
 if (hasGsap && typeof Draggable !== "undefined") gsap.registerPlugin(Draggable);
 if (hasGsap && typeof InertiaPlugin !== "undefined") gsap.registerPlugin(InertiaPlugin);
+// Liquid-Glass-Refraktion (SVG-Displacement in backdrop-filter) nur in Chromium
+if (window.chrome && !reducedMotion) document.documentElement.classList.add("lg-on");
 
 /* ===================== Icons ===================== */
 const I = {
@@ -46,7 +48,33 @@ const I = {
   chev: '<polyline points="9 18 15 12 9 6"/>',
   sliders: '<line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/><line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/><line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/><line x1="1" y1="14" x2="7" y2="14"/><line x1="9" y1="8" x2="15" y2="8"/><line x1="17" y1="16" x2="23" y2="16"/>',
   gear: '<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>'
+  sparkles: '<path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z" fill="currentColor" stroke="none"/><path d="M19 14.5l.9 2.3 2.3.9-2.3.9-.9 2.3-.9-2.3-2.3-.9 2.3-.9z" fill="currentColor" stroke="none"/>',
+  share: '<circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/>',
+  zap: '<polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>',
+  smile: '<circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/>',
+  ghost: '<path d="M9 10h.01M15 10h.01"/><path d="M12 2a8 8 0 0 0-8 8v12l3-3 2.5 2.5L12 19l2.5 2.5L17 19l3 3V10a8 8 0 0 0-8-8z"/>',
+  eye: '<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>',
+  planet: '<circle cx="12" cy="12" r="5.5"/><path d="M4.5 9.5C2.6 10.4 1.6 11.4 2 12.4c.7 1.7 5 2.6 10 2.1 5-.4 9.4-2 9.9-3.6.3-1-.8-1.9-2.7-2.4"/>',
+  heart: '<path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>',
+  shield: '<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>',
+  video: '<polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2"/>',
+  users: '<path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>',
+  clock: '<circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>',
+  music: '<path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/>',
+  wand: '<path d="M15 4V2"/><path d="M15 16v-2"/><path d="M8 9h2"/><path d="M20 9h2"/><path d="M17.8 11.8L19 13"/><path d="M15 9h0"/><path d="M17.8 6.2L19 5"/><path d="M3 21l9-9"/><path d="M12.2 6.2L11 5"/>',
+  mic: '<path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/>',
+  tvic: '<rect x="2" y="7" width="20" height="15" rx="2"/><polyline points="17 2 12 7 7 2"/>',
+  target: '<circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/>',
+  masks: '<path d="M4 3h7v5.5a3.5 3.5 0 0 1-7 0z"/><path d="M13 8h7v5.5a3.5 3.5 0 0 1-7 0z"/><path d="M6 5.5h.01M9 5.5h.01M15 10.5h.01M18 10.5h.01"/>'
 };
+const GENRE_ICONS = {
+  28: "zap", 12: "compass", 14: "wand", 16: "sparkles", 27: "ghost", 35: "smile",
+  53: "eye", 878: "planet", 9648: "search", 10749: "heart", 80: "shield", 99: "video",
+  18: "masks", 10751: "users", 36: "clock", 10402: "music", 10752: "target", 37: "target",
+  10770: "tvic", 10759: "zap", 10765: "planet", 10762: "users", 10763: "mic",
+  10764: "tvic", 10766: "tvic", 10767: "mic", 10768: "target"
+};
+function genreIcon(id) { return GENRE_ICONS[id] || "film"; }
 function icon(name, size = 17) {
   return `<svg style="width:${size}px;height:${size}px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${I[name] || ""}</svg>`;
 }
@@ -80,6 +108,9 @@ if (cloudEnabled) sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_
 let prefs = JSON.parse(localStorage.getItem("fl_prefs") || '{"fav":[],"hide":[]}');
 let prefsDirty = false;
 let allGenres = null;
+let subs = JSON.parse(localStorage.getItem("fl_subs") || "[]");
+let providersCache = null;
+function saveSubs() { localStorage.setItem("fl_subs", JSON.stringify(subs)); }
 
 function persist() { localStorage.setItem("fl_store", JSON.stringify(store)); updateCounts(); }
 function persistSkips() { localStorage.setItem("fl_skip", JSON.stringify([...skipped].slice(-600))); }
@@ -188,6 +219,7 @@ async function buildDashboard() {
   $("rows").innerHTML = "";
   try {
     await ensureAllGenres();
+    renderQuickGenres();
     const trend = await api("/trending/" + curType + "/week");
     const visible = trend.results.filter(x => !isHidden(x));
     bbItems = visible.filter(x => x.backdrop_path).slice(0, 6);
@@ -201,6 +233,11 @@ async function buildDashboard() {
     $("rows").innerHTML = "<div class='empty'>Fehler beim Laden – Internetverbindung prüfen.</div>";
   }
 }
+function genreNamesOf(item, n = 2) {
+  return (item.genre_ids || [])
+    .map(id => (allGenres || []).find(g => g.id === id))
+    .filter(Boolean).slice(0, n).map(g => g.name).join(", ");
+}
 function showBillboard(i, instant) {
   bbIdx = i;
   const item = bbItems[i];
@@ -208,14 +245,13 @@ function showBillboard(i, instant) {
   const next = bbActiveImg === "A" ? "B" : "A";
   const imgNext = $("bbImg" + next);
   const imgCur = $("bbImg" + bbActiveImg);
-  const src = IMG + (isMobile() ? "w780" : "w1280") + item.backdrop_path;
+  const src = IMG + "w780" + item.backdrop_path;
 
   const apply = () => {
     if (hasGsap && !reducedMotion) {
       gsap.killTweensOf([imgNext, imgCur]);
-      gsap.set(imgNext, { opacity: 0, scale: 1.06 });
+      gsap.set(imgNext, { opacity: 0 });
       gsap.to(imgNext, { opacity: 1, duration: instant ? 0.6 : 1.1, ease: "power2.inOut" });
-      gsap.to(imgNext, { scale: 1.14, duration: 9, ease: "none" });
       gsap.to(imgCur, { opacity: 0, duration: instant ? 0 : 1.1, ease: "power2.inOut" });
     } else {
       imgNext.style.opacity = 1; imgCur.style.opacity = 0;
@@ -225,14 +261,26 @@ function showBillboard(i, instant) {
     const year = (item.release_date || item.first_air_date || "").slice(0, 4);
     $("bbTitle").innerHTML = String(title).split("").map(c => c === " " ? " " : `<span class="ch">${esc(c)}</span>`).join("");
     $("bbMeta").innerHTML = `
-      ${item.vote_average ? `<span class="match">${matchPct(item.vote_average)} Bewertung</span>` : ""}
-      <span>${year}</span>
-      <span class="chip-min">${curType === "tv" ? "Serie" : "Film"}</span>`;
+      <span>${year}</span><span>·</span>
+      <span>${esc(genreNamesOf(item))}</span><span>·</span>
+      <span>${curType === "tv" ? "Serie" : "Film"}</span>`;
     $("bbOverview").textContent = item.overview || "";
+    $("bbRating").innerHTML = item.vote_average ? `
+      <span class="star"><span style="color:var(--red);display:inline-flex">${icon("star", 15)}</span> ${item.vote_average.toFixed(1).replace(".", ",")}</span>
+      <span class="match">${matchPct(item.vote_average)} Match</span>` : "";
+    if (item.poster_path) {
+      const p = $("bbPoster");
+      if (hasGsap && !reducedMotion) {
+        gsap.to(p, { opacity: 0, scale: 0.96, duration: instant ? 0 : 0.3, onComplete: () => {
+          p.src = IMG + "w500" + item.poster_path;
+          gsap.to(p, { opacity: 1, scale: 1, duration: 0.55, ease: "power3.out", delay: 0.05 });
+        }});
+      } else p.src = IMG + "w500" + item.poster_path;
+    }
     updateBbSave();
     if (hasGsap && !reducedMotion) {
-      gsap.fromTo([$("bbTag"), $("bbMeta"), $("bbOverview")],
-        { opacity: 0, y: 18 }, { opacity: 1, y: 0, duration: 0.6, stagger: 0.08, ease: "power3.out" });
+      gsap.fromTo([$("bbTag"), $("bbMeta"), $("bbOverview"), $("bbRating")],
+        { opacity: 0, y: 18 }, { opacity: 1, y: 0, duration: 0.6, stagger: 0.07, ease: "power3.out" });
       gsap.fromTo("#bbTitle .ch", { opacity: 0, yPercent: 65 },
         { opacity: 1, yPercent: 0, duration: 0.55, stagger: 0.02, ease: "power3.out" });
     }
@@ -250,7 +298,23 @@ function updateBbSave() {
   const k = keyOf(curType, item.id);
   $("bbSave").innerHTML = store.watch[k]
     ? `${icon("check", 16)} Gemerkt`
-    : `${icon("bookmark", 16)} Merken`;
+    : `${icon("bookmark", 16)} Speichern`;
+}
+function renderQuickGenres() {
+  const wrap = $("quickGenres");
+  wrap.querySelectorAll(".qpill").forEach(el => el.remove());
+  const common = [53, 878, 18, 9648, 28, 35, 27, 10749, 80, 16, 10759, 10765];
+  const ids = [...new Set([...prefs.fav, ...common])]
+    .filter(id => !prefs.hide.includes(id))
+    .map(id => (allGenres || []).find(g => g.id === id))
+    .filter(Boolean).slice(0, 10);
+  for (const g of ids) {
+    const p = document.createElement("div");
+    p.className = "qpill liquid" + (curGenre === g.id ? " active" : "");
+    p.innerHTML = `<span data-ic>${icon(genreIcon(g.id), 15)}</span>${esc(g.name)}`;
+    p.onclick = () => { curGenre = g.id; openGrid("popular"); };
+    wrap.appendChild(p);
+  }
 }
 function startBillboard() {
   stopBillboard();
@@ -281,8 +345,14 @@ function buildRows(top10) {
 
   const watchEntries = Object.values(store.watch);
   if (watchEntries.length >= 2) {
-    const rw = addRow(rowShell("Deine Merkliste", () => switchView("library")));
+    const rw = addRow(rowShell("Deine Merkliste", () => { curLib = "watch"; switchView("library"); }));
     fillRowFromStore(rw.scroller, watchEntries.slice(0, 20));
+  }
+
+  // Deine Listen als Reihe
+  if (session && myLists.length) {
+    const rl = addRow(rowShell("Deine Listen", () => { curLib = "lists"; switchView("library"); }));
+    fillListsRow(rl.scroller);
   }
 
   // Favoriten-Genres als eigene Reihen
@@ -311,6 +381,18 @@ function revealRow(row) {
     opacity: 0, y: 36, duration: 0.65, ease: "power3.out",
     scrollTrigger: { trigger: row, start: "top 94%" }
   });
+}
+async function fillListsRow(scroller) {
+  scroller.innerHTML = "";
+  for (const l of myLists.slice(0, 10)) {
+    const tile = document.createElement("div");
+    tile.className = "list-tile liquid";
+    tile.innerHTML = `<span class="lt-ico">${icon("list", 20)}</span><h3>${esc(l.name)}</h3><div class="sub">…</div>`;
+    tile.onclick = () => openListDetail(l.id);
+    scroller.appendChild(tile);
+    sb.from("fl_list_items").select("*", { count: "exact", head: true }).eq("list_id", l.id)
+      .then(({ count }) => { tile.querySelector(".sub").textContent = (count ?? 0) + " Titel"; });
+  }
 }
 async function loadGenreRow(scroller, gid) {
   try {
@@ -477,7 +559,7 @@ async function doSearch() {
 }
 
 /* ===================== Karten (Grid/Suche/Bibliothek) ===================== */
-function makeCard(item, type) {
+function makeCard(item, type, hideBadge = null) {
   const id = item.id;
   const k = keyOf(type, id);
   const title = item.title || item.name || "?";
@@ -485,7 +567,10 @@ function makeCard(item, type) {
   const rating = item.vote_average ? Number(item.vote_average).toFixed(1) : null;
 
   const card = document.createElement("div");
-  card.className = "card" + (store.seen[k] ? " is-seen" : "") + (store.watch[k] ? " is-watch" : "");
+  card.className = "card"
+    + (store.seen[k] ? " is-seen" : "")
+    + (store.watch[k] ? " is-watch" : "")
+    + (hideBadge ? ` no-${hideBadge}-badge` : "");
   card.dataset.key = k;
 
   const posterHtml = item.poster_path
@@ -496,27 +581,15 @@ function makeCard(item, type) {
     <div class="poster-wrap">
       ${posterHtml}
       ${rating ? `<div class="badge rating">${icon("star", 11)} ${rating}</div>` : ""}
-      <div class="badge seen">${icon("check", 11)}</div>
-      <div class="badge watch">${icon("bookmark", 11)}</div>
+      <div class="badge seen">${icon("check", 12)}</div>
+      <div class="badge watch">${icon("bookmark", 12)}</div>
     </div>
     <div class="info">
       <div class="title">${esc(title)}</div>
       <div class="meta"><span>${year || ""}</span><span>${type === "tv" ? "Serie" : "Film"}</span></div>
-    </div>
-    <div class="actions-row">
-      <button class="mini-btn ${store.seen[k] ? "on-seen" : ""}" data-act="seen">${icon("check", 14)}<span class="lbl">${store.seen[k] ? "Gesehen" : "Gesehen?"}</span></button>
-      <button class="mini-btn ${store.watch[k] ? "on-watch" : ""}" data-act="watch">${icon("bookmark", 14)}<span class="lbl">${store.watch[k] ? "Gemerkt" : "Merken"}</span></button>
     </div>`;
 
-  card.onclick = (e) => {
-    const btn = e.target.closest("[data-act]");
-    if (btn) {
-      toggle(btn.dataset.act, item, type);
-      card.replaceWith(makeCard(item, type));
-    } else {
-      openDetail(type, id);
-    }
-  };
+  card.onclick = () => openDetail(type, id);
   return card;
 }
 
@@ -570,7 +643,7 @@ function renderLibrary() {
   empty.style.display = "none";
   entries.forEach((e, i) => {
     const item = { id: e.id, title: e.title, poster_path: e.poster_path, vote_average: e.vote_average, release_date: e.date };
-    const card = makeCard(item, e.type);
+    const card = makeCard(item, e.type, curLib);
     observeReveal(card, i);
     grid.appendChild(card);
   });
@@ -659,10 +732,15 @@ async function openDetail(type, id) {
     const genres = (d.genres || []).map(g => g.name).join(" · ");
     const prov = ((d["watch/providers"] || {}).results || {})[REGION] || {};
     const provLink = prov.link || `https://www.justwatch.com/de/Suche?q=${encodeURIComponent(title)}`;
-    const provSection = (label, arr) => !arr || !arr.length ? "" : `
-      <h3>${label}</h3><div class="prov-row">${arr.map(p => `
-        <div class="prov"><img src="${IMG}w92${p.logo_path}" alt=""><span>${esc(p.provider_name)}</span></div>`).join("")}
+    const provSection = (label, arr, markMine) => !arr || !arr.length ? "" : `
+      <h3>${label}</h3><div class="prov-row">${arr.map(p => {
+        const mine = markMine && subs.includes(p.provider_id);
+        return `<div class="prov ${mine ? "mine" : ""}">${mine ? `<span class="pm">${icon("check", 13)}</span>` : ""}<img src="${IMG}w92${p.logo_path}" alt=""><span>${esc(p.provider_name)}</span></div>`;
+      }).join("")}
       </div>`;
+    const flat = (prov.flatrate || []).slice().sort((a, b) =>
+      (subs.includes(b.provider_id) ? 1 : 0) - (subs.includes(a.provider_id) ? 1 : 0));
+    const mineProv = flat.filter(p => subs.includes(p.provider_id));
     const hasProv = (prov.flatrate || []).length || (prov.rent || []).length || (prov.buy || []).length;
     const vids = ((d.videos || {}).results || []).filter(v => v.site === "YouTube" && (v.type === "Trailer" || v.type === "Teaser"));
     const trailer = vids.find(v => v.type === "Trailer") || vids[0];
@@ -677,6 +755,7 @@ async function openDetail(type, id) {
     box.innerHTML = `
       <div class="bd-wrap">
         ${d.backdrop_path ? `<img class="backdrop" src="${IMG}w780${d.backdrop_path}" alt=""><div class="bd-fade"></div>` : ""}
+        <button class="share" id="sheetShare" title="Teilen">${icon("share", 16)}</button>
         <button class="close" id="sheetClose">${icon("x", 16)}</button>
       </div>
       <div class="body">
@@ -686,7 +765,9 @@ async function openDetail(type, id) {
           <span>${[year, runtime].filter(Boolean).join(" · ")}</span>
           ${d.vote_average ? `<span class="star">${icon("star", 12)} ${d.vote_average.toFixed(1)} <span style="color:var(--faint);font-weight:400">(${(d.vote_count || 0).toLocaleString("de-DE")})</span></span>` : ""}
         </div>
-        ${genres ? `<div class="sub" style="margin-top:-8px">${esc(genres)}</div>` : ""}
+        ${(d.genres || []).length ? `<div class="genre-tags">${d.genres.slice(0, 4).map(g =>
+          `<span class="gtag"><span data-ic>${icon(genreIcon(g.id), 12)}</span>${esc(g.name)}</span>`).join("")}</div>` : ""}
+        ${mineProv.length ? `<div class="abo-hint">${icon("check", 14)} In deinem Abo: ${esc(mineProv.map(p => p.provider_name).join(", "))}</div>` : ""}
         <p class="overview">${esc(d.overview || "Keine Beschreibung verfügbar.")}</p>
         <div class="big-actions">
           <button class="btn ${store.watch[k] ? "" : "primary"}" id="mWatch">${icon(store.watch[k] ? "check" : "bookmark", 15)} <span>${store.watch[k] ? "Gemerkt" : "Auf Merkliste"}</span></button>
@@ -697,7 +778,7 @@ async function openDetail(type, id) {
         ${addToListHtml}
         <div class="providers">
           ${hasProv
-            ? provSection("Im Abo enthalten", prov.flatrate) + provSection("Leihen", prov.rent) + provSection("Kaufen", prov.buy)
+            ? provSection("Im Abo enthalten", flat, true) + provSection("Leihen", prov.rent, false) + provSection("Kaufen", prov.buy, false)
             : "<h3>Streaming</h3><p style='color:var(--muted);font-size:0.88rem'>Aktuell keine Streaming-Infos für Deutschland gefunden.</p>"}
           <div class="attribution">Verfügbarkeit für Deutschland · Daten von JustWatch</div>
         </div>
@@ -705,6 +786,7 @@ async function openDetail(type, id) {
 
     currentDetail = { d, type, k };
     $("sheetClose").onclick = closeSheet;
+    $("sheetShare").onclick = () => shareTitle(title, type, id);
     const addBtn = $("addToListBtn");
     if (addBtn) addBtn.onclick = addCurrentToList;
     const refresh = () => {
@@ -723,6 +805,18 @@ async function openDetail(type, id) {
     $("mWatch").onclick = () => { toggle("watch", d, type); refresh(); };
   } catch {
     box.innerHTML = `<div class='body' style='padding-top:48px'><p>Fehler beim Laden der Details.</p></div>`;
+  }
+}
+function shareTitle(title, type, id) {
+  const url = location.origin + location.pathname + "#t=" + type + "_" + id;
+  const data = { title: "Filmliste", text: `Schau dir „${title}“ an!`, url };
+  if (navigator.share) {
+    navigator.share(data).catch(() => {});
+  } else {
+    navigator.clipboard.writeText(url).then(
+      () => toast("Link kopiert"),
+      () => prompt("Link zum Teilen:", url)
+    );
   }
 }
 function initSheetDrag() {
@@ -825,7 +919,10 @@ function updateAuthUi() {
     avatar.style.display = "flex";
     const u = session.user;
     const name = (u.user_metadata && (u.user_metadata.name || u.user_metadata.full_name)) || u.email || "?";
-    avatar.textContent = name[0].toUpperCase();
+    const pic = u.user_metadata && (u.user_metadata.avatar_url || u.user_metadata.picture);
+    avatar.innerHTML = pic
+      ? `<img src="${esc(pic)}" alt="" referrerpolicy="no-referrer" onerror="this.remove()">`
+      : esc(name[0].toUpperCase());
     $("whoami").textContent = u.email || name;
   } else {
     loginBtn.style.display = "";
@@ -1268,32 +1365,68 @@ async function ensureAllGenres() {
     allGenres = [...map.values()].sort((a, b) => a.name.localeCompare(b.name, "de"));
   } catch { allGenres = []; }
 }
+async function ensureProviders() {
+  if (providersCache) return;
+  try {
+    const [m, t] = await Promise.all([
+      api("/watch/providers/movie", { watch_region: REGION }),
+      api("/watch/providers/tv", { watch_region: REGION })
+    ]);
+    const map = new Map();
+    [...(m.results || []), ...(t.results || [])].forEach(p => {
+      const prio = (p.display_priorities && p.display_priorities[REGION]) ?? p.display_priority ?? 999;
+      if (!map.has(p.provider_id) || prio < map.get(p.provider_id)._prio) {
+        map.set(p.provider_id, { id: p.provider_id, name: p.provider_name, logo: p.logo_path, _prio: prio });
+      }
+    });
+    providersCache = [...map.values()].sort((a, b) => a._prio - b._prio).slice(0, 18);
+  } catch { providersCache = []; }
+}
 async function openPrefs() {
   closeMenu();
-  await ensureAllGenres();
-  renderPrefChips();
   $("prefsOverlay").classList.add("open");
+  await Promise.all([ensureAllGenres(), ensureProviders()]);
+  renderPrefs();
 }
-function renderPrefChips() {
-  const wrap = $("prefChips");
-  wrap.innerHTML = "";
-  for (const g of (allGenres || [])) {
+function renderPrefs() {
+  // Abos: ein Tipp = an/aus
+  const subsWrap = $("prefSubs");
+  subsWrap.innerHTML = "";
+  for (const p of (providersCache || [])) {
     const c = document.createElement("div");
-    const state = prefs.fav.includes(g.id) ? "fav" : prefs.hide.includes(g.id) ? "hide" : "";
-    c.className = ("chip " + state).trim();
-    c.innerHTML = state === "fav" ? `${icon("star", 12)} ${esc(g.name)}`
-      : state === "hide" ? `${icon("x", 12)} ${esc(g.name)}`
-      : esc(g.name);
+    c.className = "chip" + (subs.includes(p.id) ? " sub-on" : "");
+    c.innerHTML = `${p.logo ? `<img src="${IMG}w92${p.logo}" alt="">` : ""}${esc(p.name)}${subs.includes(p.id) ? " " + icon("check", 12) : ""}`;
     c.onclick = () => {
-      prefsDirty = true;
-      if (prefs.fav.includes(g.id)) { prefs.fav = prefs.fav.filter(x => x !== g.id); prefs.hide.push(g.id); }
-      else if (prefs.hide.includes(g.id)) { prefs.hide = prefs.hide.filter(x => x !== g.id); }
-      else { prefs.fav.push(g.id); }
-      savePrefs();
-      renderPrefChips();
+      subs = subs.includes(p.id) ? subs.filter(x => x !== p.id) : [...subs, p.id];
+      saveSubs();
+      renderPrefs();
     };
-    wrap.appendChild(c);
+    subsWrap.appendChild(c);
   }
+  // Genres: zwei getrennte Single-Tap-Listen
+  const mk = (wrapId, listName, otherName, cls) => {
+    const wrap = $(wrapId);
+    wrap.innerHTML = "";
+    for (const g of (allGenres || [])) {
+      const on = prefs[listName].includes(g.id);
+      const c = document.createElement("div");
+      c.className = "chip" + (on ? " " + cls : "");
+      c.innerHTML = `${icon(genreIcon(g.id), 13)} ${esc(g.name)}`;
+      c.onclick = () => {
+        prefsDirty = true;
+        if (on) prefs[listName] = prefs[listName].filter(x => x !== g.id);
+        else {
+          prefs[listName] = [...prefs[listName], g.id];
+          prefs[otherName] = prefs[otherName].filter(x => x !== g.id);
+        }
+        savePrefs();
+        renderPrefs();
+      };
+      wrap.appendChild(c);
+    }
+  };
+  mk("prefFav", "fav", "hide", "fav");
+  mk("prefHide", "hide", "fav", "hide");
 }
 function closePrefs() {
   if (!$("prefsOverlay").classList.contains("open")) return;
@@ -1362,7 +1495,6 @@ function wireEvents() {
   document.querySelectorAll("[data-go]").forEach(el =>
     el.addEventListener("click", () => switchView(el.dataset.go)));
   $("surpriseBtn").onclick = surpriseMe;
-  $("searchHBtn").onclick = () => switchView("search");
   $("loginBtn").onclick = openAuth;
   $("avatar").onclick = toggleMenu;
   $("exportBtn").onclick = exportData;
@@ -1446,6 +1578,8 @@ function applyFabPref() {
 
 /* ===================== Hash-Route (geteilte Listen) ===================== */
 function handleHashRoute() {
+  const t = location.hash.match(/t=(movie|tv)_(\d+)/i);
+  if (t) { openDetail(t[1].toLowerCase(), Number(t[2])); return; }
   const m = location.hash.match(/list=([0-9a-f-]+)/i);
   if (m && cloudEnabled) openListDetail(m[1]);
 }
@@ -1476,8 +1610,8 @@ async function boot() {
   if (hasGsap && typeof ScrollTrigger !== "undefined" && !reducedMotion) {
     gsap.to(".bb-img-wrap", { yPercent: 20, ease: "none",
       scrollTrigger: { trigger: "#billboard", start: "top top", end: "bottom top", scrub: true } });
-    gsap.to(".bb-content", { yPercent: 42, opacity: 0.1, ease: "none",
-      scrollTrigger: { trigger: "#billboard", start: "top top", end: "80% top", scrub: true } });
+    gsap.to(".bb-split", { yPercent: 30, opacity: 0.15, ease: "none",
+      scrollTrigger: { trigger: "#billboard", start: "top top", end: "85% top", scrub: true } });
   }
   buildDashboard();
 
