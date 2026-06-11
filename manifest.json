@@ -1,0 +1,12 @@
+{
+  "name": "Filmliste",
+  "short_name": "Filmliste",
+  "description": "Was schauen wir heute? Filme & Serien entdecken, swipen, merken.",
+  "start_url": ".",
+  "display": "standalone",
+  "background_color": "#0b0b0e",
+  "theme_color": "#0b0b0e",
+  "icons": [
+    { "src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }
+  ]
+}
