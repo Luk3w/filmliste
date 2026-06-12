@@ -378,7 +378,7 @@ function buildRows(top10) {
 
   const watchEntries = Object.values(store.watch);
   if (watchEntries.length >= 2) {
-    const rw = addRow(rowShell("Deine Merkliste", () => { curLib = "watch"; switchView("library"); }));
+    const rw = addRow(rowShell("Deine Watchlist", () => { curLib = "watch"; switchView("library"); }));
     fillRowFromStore(rw.scroller, watchEntries.slice(0, 20));
   }
 
@@ -700,7 +700,7 @@ function toggle(listName, item, type) {
   if (store[listName][k]) {
     delete store[listName][k];
     cloudDelete(listName, type, item.id);
-    toast(listName === "seen" ? "Als ungesehen markiert" : "Von Merkliste entfernt");
+    toast(listName === "seen" ? "Als ungesehen markiert" : "Von der Watchlist entfernt");
   } else {
     store[listName][k] = itemRecord(item, type);
     cloudUpsert(listName, store[listName][k]);
@@ -708,7 +708,7 @@ function toggle(listName, item, type) {
       delete store.watch[k];
       cloudDelete("watch", type, item.id);
     }
-    toast(listName === "seen" ? "Als gesehen markiert" : "Auf die Merkliste gesetzt");
+    toast(listName === "seen" ? "Als gesehen markiert" : "Auf die Watchlist gesetzt");
   }
   persist();
   updateBbSave();
@@ -729,7 +729,7 @@ function renderLibrary() {
   const entries = Object.values(store[curLib]).sort((a, b) => (b.added || "").localeCompare(a.added || ""));
   if (!entries.length) {
     empty.innerHTML = curLib === "watch"
-      ? `<div class="ico-big">${icon("bookmark", 44)}</div>Noch nichts gemerkt.<br>Swipe nach rechts oder tippe auf „Merken“.`
+      ? `<div class="ico-big">${icon("bookmark", 44)}</div>Noch nichts auf der Watchlist.<br>Swipe nach rechts oder tippe auf „Merken“.`
       : `<div class="ico-big">${icon("check", 44)}</div>Noch nichts abgehakt.`;
     empty.style.display = ""; return;
   }
@@ -866,7 +866,7 @@ async function openDetail(type, id) {
         ${mineProv.length ? `<div class="abo-hint">${icon("check", 14)} In deinem Abo: ${esc(mineProv.map(p => p.provider_name).join(", "))}</div>` : ""}
         <p class="overview">${esc(d.overview || "Keine Beschreibung verfügbar.")}</p>
         <div class="big-actions">
-          <button class="btn ${store.watch[k] ? "" : "primary"}" id="mWatch">${icon(store.watch[k] ? "check" : "bookmark", 15)} <span>${store.watch[k] ? "Gemerkt" : "Auf Merkliste"}</span></button>
+          <button class="btn ${store.watch[k] ? "" : "primary"}" id="mWatch">${icon(store.watch[k] ? "check" : "bookmark", 15)} <span>${store.watch[k] ? "Gemerkt" : "Auf die Watchlist"}</span></button>
           <button class="btn ${store.seen[k] ? "primary" : ""}" id="mSeen">${icon("check", 15)} <span>${store.seen[k] ? "Gesehen" : "Als gesehen markieren"}</span></button>
           ${trailer ? `<button class="btn glass" id="trailerBtn">${icon("play", 14)} Trailer</button>` : ""}
           <a class="btn glass" href="${provLink}" target="_blank">${icon("ext", 15)} JustWatch</a>
@@ -892,7 +892,7 @@ async function openDetail(type, id) {
       bs.className = "btn " + (store.seen[k] ? "primary" : "");
       bs.querySelector("span").textContent = store.seen[k] ? "Gesehen" : "Als gesehen markieren";
       bw.className = "btn " + (store.watch[k] ? "" : "primary");
-      bw.querySelector("span").textContent = store.watch[k] ? "Gemerkt" : "Auf Merkliste";
+      bw.querySelector("span").textContent = store.watch[k] ? "Gemerkt" : "Auf die Watchlist";
       const card = document.querySelector(`.card[data-key="${k}"]`);
       if (card) {
         card.classList.toggle("is-seen", !!store.seen[k]);
@@ -1280,7 +1280,7 @@ async function shareLibrary() {
   const entries = Object.values(store[curLib]);
   if (!entries.length) { toast("Noch nichts zum Teilen drin"); return; }
   toast("Erstelle Teilen-Link …");
-  const name = (curLib === "watch" ? "Merkliste" : "Gesehen") + " von " + ownerName();
+  const name = (curLib === "watch" ? "Watchlist" : "Gesehen") + " von " + ownerName();
   try {
     await loadMyLists();
     let list = myLists.find(l => l.name === name);

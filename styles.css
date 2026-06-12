@@ -73,7 +73,7 @@ button { font-family: inherit; }
 /* ============ Header ============ */
 header {
   position: fixed; top: 0; left: 0; right: 0; z-index: 60;
-  background: linear-gradient(to bottom, rgba(10,10,14,0.92), rgba(10,10,14,0.55) 70%, transparent);
+  background: transparent;
   transition: transform 0.32s ease, background 0.35s;
 }
 header.scrolled { background: rgba(10,10,14,0.92); backdrop-filter: blur(18px); -webkit-backdrop-filter: blur(18px); }
@@ -181,6 +181,10 @@ button.qpill { font-family: inherit; cursor: pointer; }
 /* ============ Hero (Titel volle Breite, fixe Höhen, läuft oben aus) ============ */
 .billboard { position: relative; padding: 0 0 16px; overflow: hidden; }
 .bb-img-wrap { position: absolute; inset: -4%; z-index: 0; }
+.bb-img-wrap::after {
+  content: ""; position: absolute; inset: 0; pointer-events: none;
+  background: linear-gradient(to bottom, rgba(10,10,14,0.88), rgba(10,10,14,0.4) 110px, transparent 230px);
+}
 .bb-img {
   position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover;
   opacity: 0; filter: blur(26px) brightness(0.42) saturate(1.25);
@@ -265,8 +269,9 @@ button.qpill { font-family: inherit; cursor: pointer; }
 .row-head h2 { font-size: 1.02rem; font-weight: 800; letter-spacing: -0.2px; display: flex; align-items: center; gap: 6px; }
 .row-head .more { background: none; border: none; color: var(--muted); cursor: pointer; display: inline-flex; align-items: center; padding: 4px; }
 .row-scroller {
-  display: flex; gap: 10px; overflow-x: auto; padding: 4px 22px 12px;
+  display: flex; gap: 10px; overflow-x: auto; overflow-y: hidden; padding: 4px 22px 12px;
   scroll-snap-type: x proximity; scrollbar-width: none; scroll-padding-left: 22px;
+  overscroll-behavior-x: contain; touch-action: pan-x pan-y;
   -webkit-mask-image: linear-gradient(to right, #000 0, #000 calc(100% - 42px), transparent 100%);
   mask-image: linear-gradient(to right, #000 0, #000 calc(100% - 42px), transparent 100%);
 }
