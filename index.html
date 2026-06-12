@@ -56,8 +56,6 @@
         <div class="who" id="whoami"></div>
         <hr>
         <button class="item" id="prefsBtn"><span data-ic="sliders"></span> Einstellungen</button>
-        <button class="item" id="exportBtn"><span data-ic="down"></span> Listen exportieren</button>
-        <button class="item" id="importBtn"><span data-ic="up"></span> Listen importieren</button>
         <hr>
         <button class="item" id="logoutItem"><span data-ic="out"></span> Abmelden</button>
       </div>
@@ -83,13 +81,6 @@
 
   <!-- ====== Dashboard ====== -->
   <section id="view-discover">
-    <div class="quick-genres" id="quickGenres">
-      <div class="seg small" id="typePills" style="flex:0 0 auto">
-        <button class="active" data-type="movie">Filme</button>
-        <button data-type="tv">Serien</button>
-      </div>
-    </div>
-
     <div class="billboard" id="billboard">
       <div class="bb-img-wrap">
         <img class="bb-img" id="bbImgA" alt="">
@@ -97,22 +88,33 @@
       </div>
       <div class="bb-grain"></div>
       <div class="bb-fade"></div>
-      <div class="bb-split">
-        <div class="bb-left">
-          <div class="bb-tag" id="bbTag">Top Pick für dich</div>
-          <h1 class="bb-title" id="bbTitle"></h1>
-          <div class="bb-meta" id="bbMeta"></div>
-          <p class="bb-overview" id="bbOverview"></p>
-          <div class="bb-rating" id="bbRating"></div>
-          <div class="bb-actions">
-            <button class="btn primary big" id="bbInfo"><span data-ic="play" data-size="14"></span> Details ansehen</button>
-            <button class="btn glass liquid big" id="bbSave"><span data-ic="bookmark"></span> Speichern</button>
+
+      <div class="quick-genres" id="quickGenres">
+        <button class="qpill liquid static" id="filterBtn"><span data-ic="sliders" data-size="14"></span>Filter</button>
+        <div class="seg small glassy" id="typePills" style="flex:0 0 auto">
+          <button class="active" data-type="movie">Filme</button>
+          <button data-type="tv">Serien</button>
+        </div>
+      </div>
+
+      <div class="bb-content">
+        <div class="bb-tag" id="bbTag">Top Pick für dich</div>
+        <h1 class="bb-title" id="bbTitle"></h1>
+        <div class="bb-split">
+          <div class="bb-left">
+            <div class="bb-meta" id="bbMeta"></div>
+            <p class="bb-overview" id="bbOverview"></p>
+            <div class="bb-rating" id="bbRating"></div>
+            <div class="bb-actions">
+              <button class="btn primary" id="bbInfo"><span data-ic="play" data-size="13"></span> Details</button>
+              <button class="btn glass liquid" id="bbSave"><span data-ic="bookmark" data-size="15"></span> Speichern</button>
+            </div>
           </div>
-          <div class="bb-dots" id="bbDots"></div>
+          <div class="bb-right">
+            <img class="bb-poster" id="bbPoster" alt="">
+          </div>
         </div>
-        <div class="bb-right">
-          <img class="bb-poster" id="bbPoster" alt="">
-        </div>
+        <div class="bb-dots" id="bbDots"></div>
       </div>
     </div>
 
@@ -122,15 +124,16 @@
   <!-- ====== Ranking-Grid ====== -->
   <section id="view-grid" style="display:none">
     <div class="grid-head">
-      <button class="btn ghost" id="gridBack"><span data-ic="back"></span></button>
+      <button class="hbtn liquid" id="gridBack" title="Zurück"><span data-ic="back" data-size="18"></span></button>
       <h2 id="gridTitle"></h2>
+      <div class="spacer"></div>
+      <button class="hbtn liquid" id="gridFilterBtn" title="Filter"><span data-ic="sliders" data-size="18"></span></button>
     </div>
-    <div class="grid-tools">
-      <label class="check"><input type="checkbox" id="hideSeen"> Gesehenes ausblenden</label>
-    </div>
-    <div class="chips scroll-x" id="genreChips"></div>
+    <div class="quick-genres inpage" id="gridGenrePills"></div>
+    <div class="chips" id="activeFilters" style="display:none"></div>
     <div class="grid" id="discoverGrid"></div>
     <div class="spinner" id="discoverSpinner" style="display:none">Lade …</div>
+    <div id="gridSentinel" style="height:1px"></div>
     <button class="btn load-more liquid" id="loadMoreBtn" style="display:none">Mehr laden</button>
   </section>
 
@@ -195,6 +198,8 @@
         <button data-lib="seen">Gesehen <span id="countSeen" class="seg-count">0</span></button>
         <button data-lib="lists">Listen</button>
       </div>
+      <div class="spacer"></div>
+      <button class="hbtn liquid" id="shareLibBtn" title="Teilen"><span data-ic="share" data-size="17"></span></button>
       <button class="btn primary" id="newListBtn" style="display:none"><span data-ic="plus"></span> Neue Liste</button>
     </div>
     <div class="grid" id="libraryGrid"></div>
@@ -204,10 +209,51 @@
   </section>
 
   <section id="view-listdetail" style="display:none">
-    <button class="btn ghost" id="backToLists" style="margin-bottom:14px"><span data-ic="back"></span> Zurück</button>
+    <button class="hbtn liquid" id="backToLists" title="Zurück" style="margin-bottom:14px"><span data-ic="back" data-size="18"></span></button>
     <div class="list-head" id="listHead"></div>
     <div class="grid" id="listGrid"></div>
     <div class="empty" id="listEmpty" style="display:none">Diese Liste ist noch leer.</div>
+  </section>
+
+  <!-- ====== Einstellungen (eigene Seite) ====== -->
+  <section id="view-settings" style="display:none">
+    <div class="grid-head">
+      <button class="hbtn liquid" id="settingsBack" title="Zurück"><span data-ic="back" data-size="18"></span></button>
+      <h2>Einstellungen</h2>
+    </div>
+
+    <div class="set-card liquid">
+      <div class="section-label">Meine Streaming-Abos</div>
+      <p class="set-hint">In der Detailansicht siehst du sofort, ob ein Titel in deinem Abo enthalten ist.</p>
+      <div class="chips" id="prefSubs"><div class="spinner" style="padding:10px">Lade Anbieter …</div></div>
+    </div>
+
+    <div class="set-card liquid">
+      <div class="section-label">Lieblings-Genres</div>
+      <p class="set-hint">Bekommen eigene Reihen auf der Startseite und mehr Gewicht im Swipe.</p>
+      <div class="chips" id="prefFav"></div>
+      <div class="section-label" style="margin-top:20px">Ausgeblendete Genres</div>
+      <p class="set-hint">Tauchen in Empfehlungen nicht mehr auf (Suche zeigt weiterhin alles).</p>
+      <div class="chips" id="prefHide"></div>
+    </div>
+
+    <div class="set-card liquid">
+      <div class="section-label">App</div>
+      <div class="set-row" id="installRow" style="display:none">
+        <button class="btn primary" id="installBtn"><span data-ic="down"></span> Als App installieren</button>
+      </div>
+      <div class="set-row">
+        <button class="btn" id="exportBtn"><span data-ic="down"></span> Backup exportieren</button>
+        <button class="btn" id="importBtn"><span data-ic="up"></span> Backup importieren</button>
+      </div>
+      <div class="set-row">
+        <button class="btn ghost" id="apiKeyBtn">TMDB-API-Schlüssel ändern</button>
+      </div>
+      <p class="set-hint" style="margin-top:14px">
+        Daten von <a href="https://www.themoviedb.org" target="_blank">TMDB</a> · Streaming-Verfügbarkeit von <a href="https://www.justwatch.com" target="_blank">JustWatch</a>.<br>
+        This product uses the TMDB API but is not endorsed or certified by TMDB.
+      </p>
+    </div>
   </section>
 
 </main>
@@ -225,6 +271,39 @@
   <div class="sheet" id="sheet">
     <div class="sheet-grip" id="sheetGrip"><span></span></div>
     <div class="sheet-scroll" id="sheetContent"></div>
+  </div>
+</div>
+
+<!-- ====== Filter-Sheet ====== -->
+<div class="modal-overlay bottomish" id="filterOverlay">
+  <div class="dialog liquid">
+    <button class="close" id="filterClose"><span data-ic="x"></span></button>
+    <h2>Filter</h2>
+
+    <div class="section-label">Mindest-Bewertung</div>
+    <div class="score-row">
+      <input type="range" id="fScore" min="0" max="9" step="0.5" value="0">
+      <span id="fScoreVal" class="score-val">Aus</span>
+    </div>
+
+    <div class="section-label">Plattform</div>
+    <div class="chips" id="fProviders"><div class="spinner" style="padding:8px">Lade …</div></div>
+
+    <label class="check" style="margin:14px 0 4px"><input type="checkbox" id="fHideSeen"> Gesehenes ausblenden</label>
+
+    <div class="set-row" style="margin-top:16px">
+      <button class="btn ghost" id="filterReset">Zurücksetzen</button>
+      <div class="spacer"></div>
+      <button class="btn primary" id="filterApply">Anwenden</button>
+    </div>
+  </div>
+</div>
+
+<!-- ====== Trailer-Popup ====== -->
+<div class="modal-overlay" id="trailerOverlay">
+  <div class="trailer-box">
+    <button class="close" id="trailerClose"><span data-ic="x"></span></button>
+    <iframe id="trailerFrame" src="" title="Trailer" allow="autoplay; encrypted-media; picture-in-picture" allowfullscreen></iframe>
   </div>
 </div>
 
@@ -257,33 +336,7 @@
   </div>
 </div>
 
-<!-- ====== Einstellungen ====== -->
-<div class="modal-overlay" id="prefsOverlay">
-  <div class="dialog wide">
-    <button class="close" id="prefsClose"><span data-ic="x"></span></button>
-    <h2>Einstellungen</h2>
-
-    <div class="section-label">Meine Streaming-Abos</div>
-    <p style="margin-bottom:10px">In der Detailansicht siehst du dann sofort, ob ein Titel in deinem Abo enthalten ist.</p>
-    <div class="chips" id="prefSubs"><div class="spinner" style="padding:10px">Lade Anbieter …</div></div>
-
-    <div class="section-label">Lieblings-Genres</div>
-    <p style="margin-bottom:10px">Bekommen eigene Reihen auf der Startseite und mehr Gewicht im Swipe.</p>
-    <div class="chips" id="prefFav"></div>
-
-    <div class="section-label">Ausgeblendete Genres</div>
-    <p style="margin-bottom:10px">Tauchen in Empfehlungen nicht mehr auf (Suche zeigt weiterhin alles).</p>
-    <div class="chips" id="prefHide"></div>
-  </div>
-</div>
-
 <div class="toast" id="toast"></div>
-
-<footer id="appFooter" style="display:none">
-  Daten von <a href="https://www.themoviedb.org" target="_blank">TMDB</a> · Streaming-Verfügbarkeit von <a href="https://www.justwatch.com" target="_blank">JustWatch</a><br>
-  This product uses the TMDB API but is not endorsed or certified by TMDB.<br>
-  <a href="#" id="resetKeyLink">API-Schlüssel ändern</a>
-</footer>
 
 <script src="app.js"></script>
 </body>

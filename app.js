@@ -20,6 +20,13 @@ if (hasGsap && typeof Draggable !== "undefined") gsap.registerPlugin(Draggable);
 if (hasGsap && typeof InertiaPlugin !== "undefined") gsap.registerPlugin(InertiaPlugin);
 // Liquid-Glass-Refraktion (SVG-Displacement in backdrop-filter) nur in Chromium
 if (window.chrome && !reducedMotion) document.documentElement.classList.add("lg-on");
+// PWA-Install-Prompt abfangen → Button in den Einstellungen
+window.addEventListener("beforeinstallprompt", (e) => {
+  e.preventDefault();
+  deferredPrompt = e;
+  const row = document.getElementById("installRow");
+  if (row && document.getElementById("view-settings").style.display !== "none") row.style.display = "";
+});
 
 /* ===================== Icons ===================== */
 const I = {
@@ -86,7 +93,7 @@ function hydrateIcons(root = document) {
 }
 
 /* ===================== State ===================== */
-let tmdbKey = EMBEDDED_TMDB_KEY || localStorage.getItem("fl_apikey") || "";
+let tmdbKey = localStorage.getItem("fl_apikey") || EMBEDDED_TMDB_KEY || "";
 let store = JSON.parse(localStorage.getItem("fl_store") || '{"seen":{},"watch":{}}');
 let skipped = new Set(JSON.parse(localStorage.getItem("fl_skip") || "[]"));
 let curView = "discover";
@@ -111,6 +118,12 @@ let allGenres = null;
 let subs = JSON.parse(localStorage.getItem("fl_subs") || "[]");
 let providersCache = null;
 function saveSubs() { localStorage.setItem("fl_subs", JSON.stringify(subs)); }
+let gFilter = JSON.parse(localStorage.getItem("fl_filter") || '{"minScore":0,"providers":[],"hideSeen":false}');
+function saveFilter() { localStorage.setItem("fl_filter", JSON.stringify(gFilter)); }
+let deferredPrompt = null;
+let gridBuffer = [];
+let gridTotalPages = 1;
+let gridLoading = false;
 
 function persist() { localStorage.setItem("fl_store", JSON.stringify(store)); updateCounts(); }
 function persistSkips() { localStorage.setItem("fl_skip", JSON.stringify([...skipped].slice(-600))); }
@@ -189,22 +202,29 @@ function renderTabs() {
     nav.appendChild(el);
   }
 }
-function switchView(v) {
+function switchView(v, fromPop = false) {
   if (v !== "listdetail") currentList = null;
   const prev = curView;
   curView = v;
-  const navTarget = v === "listdetail" ? "library" : (v === "grid" ? "discover" : v);
+  if (!fromPop && prev !== v) history.pushState({ v }, "", "");
+  if (prev === "settings" && v !== "settings" && prefsDirty) {
+    prefsDirty = false;
+    buildDashboard();
+    resetDeck();
+  }
+  const navTarget = v === "listdetail" ? "library" : (v === "grid" || v === "settings" ? "discover" : v);
   document.querySelectorAll(".tab").forEach(t => t.classList.toggle("active", t.dataset.view === navTarget));
   document.querySelectorAll(".bottom-nav button").forEach(b => b.classList.toggle("active", b.dataset.go === navTarget));
-  ["discover", "grid", "swipe", "search", "library", "listdetail"].forEach(s => {
+  ["discover", "grid", "swipe", "search", "library", "listdetail", "settings"].forEach(s => {
     const el = $("view-" + s);
     if (el) el.style.display = s === v ? "" : "none";
   });
   if (hasGsap && !reducedMotion && prev !== v) {
-    gsap.fromTo("#view-" + v, { opacity: 0, y: 16 }, { opacity: 1, y: 0, duration: 0.35, ease: "power2.out", clearProps: "all" });
+    gsap.fromTo("#view-" + v, { opacity: 0, y: 10 }, { opacity: 1, y: 0, duration: 0.25, ease: "power2.out", clearProps: "all" });
   }
   if (v === "library") renderLibrary();
   if (v === "swipe") { ensureDeck(); maybeShowTutorial(); }
+  if (v === "settings") renderSettings();
   window.scrollTo({ top: 0 });
 }
 
@@ -230,7 +250,9 @@ async function buildDashboard() {
       startBillboard();
     }
   } catch {
-    $("rows").innerHTML = "<div class='empty'>Fehler beim Laden – Internetverbindung prüfen.</div>";
+    $("rows").innerHTML = `<div class='empty'>Da hat etwas nicht geklappt.<br><br><button class="btn primary" id="retryDash">${icon("back", 14)} Neu laden</button></div>`;
+    const r = $("retryDash");
+    if (r) r.onclick = () => buildDashboard();
   }
 }
 function genreNamesOf(item, n = 2) {
@@ -279,10 +301,10 @@ function showBillboard(i, instant) {
     }
     updateBbSave();
     if (hasGsap && !reducedMotion) {
-      gsap.fromTo([$("bbTag"), $("bbMeta"), $("bbOverview"), $("bbRating")],
-        { opacity: 0, y: 18 }, { opacity: 1, y: 0, duration: 0.6, stagger: 0.07, ease: "power3.out" });
-      gsap.fromTo("#bbTitle .ch", { opacity: 0, yPercent: 65 },
-        { opacity: 1, yPercent: 0, duration: 0.55, stagger: 0.02, ease: "power3.out" });
+      gsap.fromTo([$("bbMeta"), $("bbOverview"), $("bbRating")],
+        { opacity: 0, y: 12 }, { opacity: 1, y: 0, duration: 0.45, stagger: 0.05, ease: "power2.out" });
+      gsap.fromTo("#bbTitle .ch", { opacity: 0, yPercent: 50 },
+        { opacity: 1, yPercent: 0, duration: 0.4, stagger: 0.012, ease: "power2.out" });
     }
     [...$("bbDots").children].forEach((d, di) => d.classList.toggle("on", di === i));
   };
@@ -302,7 +324,7 @@ function updateBbSave() {
 }
 function renderQuickGenres() {
   const wrap = $("quickGenres");
-  wrap.querySelectorAll(".qpill").forEach(el => el.remove());
+  wrap.querySelectorAll(".qpill.gq").forEach(el => el.remove());
   const common = [53, 878, 18, 9648, 28, 35, 27, 10749, 80, 16, 10759, 10765];
   const ids = [...new Set([...prefs.fav, ...common])]
     .filter(id => !prefs.hide.includes(id))
@@ -310,7 +332,7 @@ function renderQuickGenres() {
     .filter(Boolean).slice(0, 10);
   for (const g of ids) {
     const p = document.createElement("div");
-    p.className = "qpill liquid" + (curGenre === g.id ? " active" : "");
+    p.className = "qpill liquid gq" + (curGenre === g.id ? " active" : "");
     p.innerHTML = `<span data-ic>${icon(genreIcon(g.id), 15)}</span>${esc(g.name)}`;
     p.onclick = () => { curGenre = g.id; openGrid("popular"); };
     wrap.appendChild(p);
@@ -333,7 +355,7 @@ const rowIO = ("IntersectionObserver" in window) ? new IntersectionObserver(entr
     const fn = e.target._loadFn;
     if (fn) fn();
   }
-}, { rootMargin: "300px 0px" }) : null;
+}, { rootMargin: "900px 0px" }) : null;
 
 function buildRows(top10) {
   const wrap = $("rows");
@@ -378,8 +400,8 @@ function buildRows(top10) {
 function revealRow(row) {
   if (!hasGsap || reducedMotion || typeof ScrollTrigger === "undefined") return;
   gsap.from(row, {
-    opacity: 0, y: 36, duration: 0.65, ease: "power3.out",
-    scrollTrigger: { trigger: row, start: "top 94%" }
+    opacity: 0, y: 22, duration: 0.5, ease: "power2.out",
+    scrollTrigger: { trigger: row, start: "top 105%" }
   });
 }
 async function fillListsRow(scroller) {
@@ -454,7 +476,7 @@ function makeTile(item, type, idx) {
     <span class="tile-seen">${icon("check", 11)}</span>`;
   tile.onclick = () => openDetail(type, item.id);
   if (hasGsap && !reducedMotion) {
-    gsap.to(tile, { opacity: 1, y: 0, duration: 0.5, ease: "power3.out", delay: Math.min(idx * 0.04, 0.5),
+    gsap.to(tile, { opacity: 1, y: 0, duration: 0.4, ease: "power2.out", delay: Math.min(idx * 0.03, 0.3),
       onStart: () => tile.classList.add("shown") });
   } else tile.classList.add("shown");
   return tile;
@@ -472,27 +494,50 @@ function openGrid(rankId) {
   curPage = 1;
   $("gridTitle").textContent = RANKS.find(r => r.id === rankId).label;
   switchView("grid");
-  loadGenres();
+  renderGridGenrePills();
   renderGrid(true);
 }
-async function loadGenres() {
+async function loadTypeGenres() {
   if (!genreCache[curType]) {
     const d = await api("/genre/" + curType + "/list");
     genreCache[curType] = d.genres;
   }
-  const wrap = $("genreChips");
+  return genreCache[curType];
+}
+async function renderGridGenrePills() {
+  const wrap = $("gridGenrePills");
   wrap.innerHTML = "";
-  const all = document.createElement("div");
-  all.className = "chip" + (curGenre === null ? " active" : "");
-  all.textContent = "Alle";
-  all.onclick = () => { curGenre = null; loadGenres(); renderGrid(true); };
+  const genres = await loadTypeGenres().catch(() => []);
+  const all = document.createElement("button");
+  all.className = "qpill liquid" + (curGenre === null ? " active" : "");
+  all.innerHTML = `<span data-ic>${icon("film", 14)}</span>Alle`;
+  all.onclick = () => { curGenre = null; renderGridGenrePills(); renderGrid(true); };
   wrap.appendChild(all);
-  for (const g of genreCache[curType]) {
+  for (const g of genres) {
+    const p = document.createElement("button");
+    p.className = "qpill liquid" + (curGenre === g.id ? " active" : "");
+    p.innerHTML = `<span data-ic>${icon(genreIcon(g.id), 14)}</span>${esc(g.name)}`;
+    p.onclick = () => { curGenre = (curGenre === g.id ? null : g.id); renderGridGenrePills(); renderGrid(true); };
+    wrap.appendChild(p);
+  }
+}
+function renderActiveFilters() {
+  const bar = $("activeFilters");
+  const parts = [];
+  if (gFilter.minScore) parts.push({ label: "★ ≥ " + gFilter.minScore, clear: () => { gFilter.minScore = 0; } });
+  for (const pid of gFilter.providers) {
+    const p = (providersCache || []).find(x => x.id === pid);
+    parts.push({ label: p ? p.name : "Plattform", clear: () => { gFilter.providers = gFilter.providers.filter(x => x !== pid); } });
+  }
+  if (gFilter.hideSeen) parts.push({ label: "Gesehenes ausgeblendet", clear: () => { gFilter.hideSeen = false; } });
+  bar.style.display = parts.length ? "flex" : "none";
+  bar.innerHTML = "";
+  for (const part of parts) {
     const c = document.createElement("div");
-    c.className = "chip" + (curGenre === g.id ? " active" : "");
-    c.textContent = g.name;
-    c.onclick = () => { curGenre = (curGenre === g.id ? null : g.id); loadGenres(); renderGrid(true); };
-    wrap.appendChild(c);
+    c.className = "chip active";
+    c.innerHTML = `${esc(part.label)} ${icon("x", 11)}`;
+    c.onclick = () => { part.clear(); saveFilter(); renderActiveFilters(); renderGrid(true); };
+    bar.appendChild(c);
   }
 }
 const revealIO = ("IntersectionObserver" in window) ? new IntersectionObserver(entries => {
@@ -504,7 +549,7 @@ const revealIO = ("IntersectionObserver" in window) ? new IntersectionObserver(e
     } else { e.target.style.opacity = 1; e.target.style.transform = "none"; }
     e.target.classList.remove("reveal-init");
   }
-}, { rootMargin: "0px 0px -6% 0px" }) : null;
+}, { rootMargin: "0px 0px 360px 0px" }) : null;
 function observeReveal(el, idx = 0) {
   if (!revealIO || reducedMotion) { el.classList.remove("reveal-init"); return; }
   el.classList.add("reveal-init");
@@ -514,29 +559,55 @@ function observeReveal(el, idx = 0) {
 async function renderGrid(reset) {
   const grid = $("discoverGrid");
   const spin = $("discoverSpinner");
-  if (reset) { curPage = 1; grid.innerHTML = ""; }
+  if (reset) { curPage = 1; gridBuffer = []; grid.innerHTML = ""; renderActiveFilters(); }
+  if (gridLoading) return;
+  gridLoading = true;
   spin.style.display = "block";
   $("loadMoreBtn").style.display = "none";
   try {
     const rank = RANKS.find(r => r.id === curRank);
     const params = { page: curPage, watch_region: REGION, ...rank.p(curType) };
     if (curGenre) params.with_genres = curGenre;
+    if (gFilter.minScore) params["vote_average.gte"] = Math.max(gFilter.minScore, parseFloat(params["vote_average.gte"] || 0));
+    if (gFilter.providers.length) {
+      params.with_watch_providers = gFilter.providers.join("|");
+      params.with_watch_monetization_types = "flatrate";
+    }
     const d = await api("/discover/" + curType, params);
     spin.style.display = "none";
-    const hideSeen = $("hideSeen").checked;
-    let i = 0;
+    gridTotalPages = Math.min(d.total_pages, 250);
     for (const item of d.results) {
-      if (hideSeen && store.seen[keyOf(curType, item.id)]) continue;
+      if (gFilter.hideSeen && store.seen[keyOf(curType, item.id)]) continue;
       if (!curGenre && isHidden(item)) continue;
-      const card = makeCard(item, curType);
-      observeReveal(card, i++);
-      grid.appendChild(card);
+      gridBuffer.push(item);
     }
-    $("loadMoreBtn").style.display = curPage < Math.min(d.total_pages, 250) ? "flex" : "none";
+    flushGridBuffer(curPage >= gridTotalPages);
+    $("loadMoreBtn").style.display = (curPage < gridTotalPages && !gridIO) ? "flex" : "none";
   } catch {
     spin.textContent = "Fehler beim Laden.";
   }
+  gridLoading = false;
 }
+function flushGridBuffer(final) {
+  const grid = $("discoverGrid");
+  let n = gridBuffer.length;
+  if (isMobile() && !final) n -= n % 2; // immer gerade Anzahl rendern
+  const items = gridBuffer.splice(0, Math.max(n, 0));
+  items.forEach((item, i) => {
+    const card = makeCard(item, curType);
+    observeReveal(card, i);
+    grid.appendChild(card);
+  });
+  if (!grid.children.length && final) grid.innerHTML = "<div class='empty' style='grid-column:1/-1'>Nichts gefunden – Filter lockern?</div>";
+}
+const gridIO = ("IntersectionObserver" in window) ? new IntersectionObserver(entries => {
+  for (const e of entries) {
+    if (!e.isIntersecting) continue;
+    if (curView !== "grid" || gridLoading || curPage >= gridTotalPages) continue;
+    curPage++;
+    renderGrid(false);
+  }
+}, { rootMargin: "1400px 0px" }) : null;
 
 /* ===================== Suche ===================== */
 async function doSearch() {
@@ -625,6 +696,7 @@ function renderLibrary() {
   document.querySelectorAll("#libSeg button").forEach(b => b.classList.toggle("active", b.dataset.lib === curLib));
   const isLists = curLib === "lists";
   $("newListBtn").style.display = isLists ? "" : "none";
+  $("shareLibBtn").style.display = isLists ? "none" : "";
   $("libraryGrid").style.display = isLists ? "none" : "";
   $("listsGrid").style.display = isLists ? "" : "none";
   $("libraryEmpty").style.display = "none";
@@ -697,23 +769,27 @@ function openSheet() {
   $("sheetOverlay").classList.add("open");
   document.body.style.overflow = "hidden";
   sheetOpenFlag = true;
+  history.pushState({ v: curView, sheet: 1 }, "", "");
   const sheet = $("sheet");
   if (hasGsap && isMobile() && !reducedMotion) {
-    gsap.fromTo(sheet, { y: "100%" }, { y: "0%", duration: 0.45, ease: "power3.out" });
+    gsap.fromTo(sheet, { y: "100%" }, { y: "0%", duration: 0.4, ease: "power3.out" });
   } else {
     sheet.style.transform = "translateY(0%)";
   }
 }
-function closeSheet() {
+function closeSheet(viaPop = false) {
   if (!sheetOpenFlag) return;
+  if (!viaPop) { history.back(); return; } // konsumiert den Sheet-History-Eintrag → popstate schließt wirklich
   const sheet = $("sheet");
   const done = () => {
     $("sheetOverlay").classList.remove("open");
     document.body.style.overflow = "";
     sheetOpenFlag = false;
+    $("trailerFrame").src = "";
+    $("trailerOverlay").classList.remove("open");
   };
   if (hasGsap && isMobile() && !reducedMotion) {
-    gsap.to(sheet, { y: "100%", duration: 0.32, ease: "power2.in", onComplete: done });
+    gsap.to(sheet, { y: "100%", duration: 0.3, ease: "power2.in", onComplete: done });
   } else done();
 }
 async function openDetail(type, id) {
@@ -772,7 +848,7 @@ async function openDetail(type, id) {
         <div class="big-actions">
           <button class="btn ${store.watch[k] ? "" : "primary"}" id="mWatch">${icon(store.watch[k] ? "check" : "bookmark", 15)} <span>${store.watch[k] ? "Gemerkt" : "Auf Merkliste"}</span></button>
           <button class="btn ${store.seen[k] ? "primary" : ""}" id="mSeen">${icon("check", 15)} <span>${store.seen[k] ? "Gesehen" : "Als gesehen markieren"}</span></button>
-          ${trailer ? `<a class="btn glass" href="https://www.youtube.com/watch?v=${esc(trailer.key)}" target="_blank">${icon("play", 14)} Trailer</a>` : ""}
+          ${trailer ? `<button class="btn glass" id="trailerBtn">${icon("play", 14)} Trailer</button>` : ""}
           <a class="btn glass" href="${provLink}" target="_blank">${icon("ext", 15)} JustWatch</a>
         </div>
         ${addToListHtml}
@@ -785,8 +861,10 @@ async function openDetail(type, id) {
       </div>`;
 
     currentDetail = { d, type, k };
-    $("sheetClose").onclick = closeSheet;
+    $("sheetClose").onclick = () => closeSheet();
     $("sheetShare").onclick = () => shareTitle(title, type, id);
+    const tb = $("trailerBtn");
+    if (tb && trailer) tb.onclick = () => openTrailer(trailer.key);
     const addBtn = $("addToListBtn");
     if (addBtn) addBtn.onclick = addCurrentToList;
     const refresh = () => {
@@ -830,6 +908,54 @@ function initSheetDrag() {
       else gsap.to($("sheet"), { y: 0, duration: 0.3, ease: "power3.out" });
     }
   });
+}
+
+/* ===================== Trailer-Popup ===================== */
+function openTrailer(key) {
+  $("trailerFrame").src = "https://www.youtube-nocookie.com/embed/" + encodeURIComponent(key) + "?autoplay=1&rel=0&playsinline=1";
+  $("trailerOverlay").classList.add("open");
+}
+function closeTrailer() {
+  $("trailerOverlay").classList.remove("open");
+  $("trailerFrame").src = "";
+}
+
+/* ===================== Filter-Sheet ===================== */
+let filterCtx = "grid";
+async function openFilter(ctx) {
+  filterCtx = ctx;
+  $("filterOverlay").classList.add("open");
+  $("fScore").value = gFilter.minScore || 0;
+  $("fScoreVal").textContent = gFilter.minScore ? "★ " + gFilter.minScore : "Aus";
+  $("fHideSeen").checked = !!gFilter.hideSeen;
+  await ensureProviders();
+  const wrap = $("fProviders");
+  wrap.innerHTML = "";
+  for (const p of (providersCache || [])) {
+    const c = document.createElement("div");
+    const on = gFilter.providers.includes(p.id);
+    c.className = "chip" + (on ? " sub-on" : "");
+    c.innerHTML = `${p.logo ? `<img src="${IMG}w92${p.logo}" alt="">` : ""}${esc(p.name)}`;
+    c.onclick = () => {
+      gFilter.providers = on ? gFilter.providers.filter(x => x !== p.id) : [...gFilter.providers, p.id];
+      openFilter(filterCtx);
+    };
+    wrap.appendChild(c);
+  }
+}
+function closeFilter() { $("filterOverlay").classList.remove("open"); }
+function applyFilter() {
+  gFilter.minScore = parseFloat($("fScore").value) || 0;
+  gFilter.hideSeen = $("fHideSeen").checked;
+  saveFilter();
+  closeFilter();
+  if (filterCtx === "dash") { curRank = "popular"; openGrid("popular"); }
+  else renderGrid(true);
+}
+function resetFilter() {
+  gFilter = { minScore: 0, providers: [], hideSeen: false };
+  saveFilter();
+  openFilter(filterCtx);
 }
 
 /* ===================== Überrasch mich ===================== */
@@ -1071,6 +1197,36 @@ async function deleteList() {
   toast("Liste gelöscht");
   curLib = "lists";
   switchView("library");
+}
+
+/* ===================== Merkliste/Gesehen teilen (Snapshot-Liste) ===================== */
+async function shareLibrary() {
+  if (curLib === "lists") return;
+  if (!session) { openAuth(); return; }
+  const entries = Object.values(store[curLib]);
+  if (!entries.length) { toast("Noch nichts zum Teilen drin"); return; }
+  toast("Erstelle Teilen-Link …");
+  const name = (curLib === "watch" ? "Merkliste" : "Gesehen") + " von " + ownerName();
+  try {
+    await loadMyLists();
+    let list = myLists.find(l => l.name === name);
+    if (!list) {
+      const { data, error } = await sb.from("fl_lists")
+        .insert({ owner: session.user.id, owner_name: ownerName(), name, description: "Automatischer Schnappschuss" })
+        .select().single();
+      if (error || !data) throw error;
+      list = data;
+    }
+    await sb.from("fl_list_items").delete().eq("list_id", list.id);
+    const rows = entries.slice(0, 200).map(r => ({
+      list_id: list.id, media_type: r.type, tmdb_id: r.id,
+      title: r.title, poster_path: r.poster_path, vote_average: r.vote_average, year: r.date
+    }));
+    if (rows.length) await sb.from("fl_list_items").upsert(rows);
+    const url = location.origin + location.pathname + "#list=" + list.id;
+    if (navigator.share) await navigator.share({ title: "Filmliste", text: name, url }).catch(() => {});
+    else { await navigator.clipboard.writeText(url); toast("Link kopiert"); }
+  } catch { toast("Teilen fehlgeschlagen"); }
 }
 
 /* ===================== Swipe: Three.js-Glow ===================== */
@@ -1382,9 +1538,9 @@ async function ensureProviders() {
     providersCache = [...map.values()].sort((a, b) => a._prio - b._prio).slice(0, 18);
   } catch { providersCache = []; }
 }
-async function openPrefs() {
-  closeMenu();
-  $("prefsOverlay").classList.add("open");
+async function renderSettings() {
+  const row = $("installRow");
+  if (row) row.style.display = deferredPrompt ? "" : "none";
   await Promise.all([ensureAllGenres(), ensureProviders()]);
   renderPrefs();
 }
@@ -1428,15 +1584,12 @@ function renderPrefs() {
   mk("prefFav", "fav", "hide", "fav");
   mk("prefHide", "hide", "fav", "hide");
 }
-function closePrefs() {
-  if (!$("prefsOverlay").classList.contains("open")) return;
-  $("prefsOverlay").classList.remove("open");
-  if (prefsDirty) {
-    prefsDirty = false;
-    buildDashboard();
-    resetDeck();
-    toast("Einstellungen übernommen");
-  }
+async function changeApiKey() {
+  const k = prompt("Neuen TMDB-API-Schlüssel eingeben (leer = Standard):", "");
+  if (k === null) return;
+  if (k.trim()) localStorage.setItem("fl_apikey", k.trim());
+  else localStorage.removeItem("fl_apikey");
+  location.reload();
 }
 
 /* ===================== Ambient-Hintergrund (Three.js) ===================== */
@@ -1501,21 +1654,34 @@ function wireEvents() {
   $("importBtn").onclick = () => $("importFile").click();
   $("importFile").onchange = importData;
   $("logoutItem").onclick = doLogout;
-  $("prefsBtn").onclick = openPrefs;
-  $("prefsClose").onclick = closePrefs;
-  $("prefsOverlay").addEventListener("click", e => { if (e.target === $("prefsOverlay")) closePrefs(); });
+  $("prefsBtn").onclick = () => { closeMenu(); switchView("settings"); };
+  $("settingsBack").onclick = () => history.back();
+  $("apiKeyBtn").onclick = changeApiKey;
+  $("installBtn").onclick = () => {
+    if (!deferredPrompt) return;
+    deferredPrompt.prompt();
+    deferredPrompt = null;
+    $("installRow").style.display = "none";
+  };
   $("saveKeyBtn").onclick = saveKey;
-  $("resetKeyLink").onclick = (e) => { e.preventDefault(); localStorage.removeItem("fl_apikey"); location.reload(); };
   document.querySelectorAll("#typePills button").forEach(b => b.onclick = () => setDashType(b.dataset.type));
   $("bbSave").onclick = () => {
     const item = bbItems[bbIdx];
     if (item) { toggle("watch", item, curType); updateBbSave(); }
   };
   $("bbInfo").onclick = () => { const item = bbItems[bbIdx]; if (item) openDetail(curType, item.id); };
-  $("gridBack").onclick = () => switchView("discover");
-  $("hideSeen").onchange = () => renderGrid(true);
+  $("gridBack").onclick = () => history.back();
+  $("gridFilterBtn").onclick = () => openFilter("grid");
+  $("filterBtn").onclick = () => openFilter("dash");
+  $("filterClose").onclick = closeFilter;
+  $("filterApply").onclick = applyFilter;
+  $("filterReset").onclick = resetFilter;
+  $("fScore").oninput = () => { const v = parseFloat($("fScore").value); $("fScoreVal").textContent = v ? "★ " + v : "Aus"; };
+  $("filterOverlay").addEventListener("click", e => { if (e.target === $("filterOverlay")) closeFilter(); });
   $("loadMoreBtn").onclick = () => { curPage++; renderGrid(false); };
+  if (gridIO) gridIO.observe($("gridSentinel"));
   document.querySelectorAll("#libSeg button").forEach(b => b.onclick = () => { curLib = b.dataset.lib; renderLibrary(); });
+  $("shareLibBtn").onclick = shareLibrary;
   $("searchBtn").onclick = doSearch;
   $("searchInput").addEventListener("keydown", e => { if (e.key === "Enter") doSearch(); });
   $("newListBtn").onclick = openNewList;
@@ -1529,7 +1695,7 @@ function wireEvents() {
   $("sheetOverlay").addEventListener("click", e => { if (e.target === $("sheetOverlay")) closeSheet(); });
   $("authOverlay").addEventListener("click", e => { if (e.target === $("authOverlay")) closeAuth(); });
   $("newListOverlay").addEventListener("click", e => { if (e.target === $("newListOverlay")) closeNewList(); });
-  document.addEventListener("keydown", e => { if (e.key === "Escape") { closeSheet(); closeAuth(); closeNewList(); closePrefs(); } });
+  document.addEventListener("keydown", e => { if (e.key === "Escape") { closeSheet(); closeAuth(); closeNewList(); closeFilter(); closeTrailer(); } });
   document.addEventListener("click", e => { if (!$("acctWrap").contains(e.target)) closeMenu(); });
   let lastScrollY = 0;
   window.addEventListener("scroll", () => {
@@ -1570,6 +1736,23 @@ function wireEvents() {
   $("fabSave").onclick = () => commitSwipe("save");
   $("fabInfo").onclick = () => { if (deckItems[0]) openDetail(deckType, deckItems[0].id); };
   $("tutDone").onclick = closeTutorial;
+  $("trailerClose").onclick = closeTrailer;
+  $("trailerOverlay").addEventListener("click", e => { if (e.target === $("trailerOverlay")) closeTrailer(); });
+
+  // History: Hardware-Zurück schließt erst Overlays/Sheet, dann Views – statt die Seite zu zerlegen
+  window.addEventListener("popstate", (e) => {
+    closeTrailer();
+    if (sheetOpenFlag) { closeSheet(true); return; }
+    closeAuth(); closeNewList(); closeFilter();
+    switchView((e.state && e.state.v) || "discover", true);
+  });
+  // bfcache-Restore (Zurück aus anderer Seite): Daten frisch aufbauen statt kaputtem Zustand
+  window.addEventListener("pageshow", (e) => {
+    if (e.persisted) {
+      buildDashboard();
+      if (hasGsap && typeof ScrollTrigger !== "undefined") ScrollTrigger.refresh();
+    }
+  });
 }
 
 function applyFabPref() {
@@ -1579,8 +1762,9 @@ function applyFabPref() {
 /* ===================== Hash-Route (geteilte Listen) ===================== */
 function handleHashRoute() {
   const t = location.hash.match(/t=(movie|tv)_(\d+)/i);
-  if (t) { openDetail(t[1].toLowerCase(), Number(t[2])); return; }
   const m = location.hash.match(/list=([0-9a-f-]+)/i);
+  if (t || m) history.replaceState({ v: curView }, "", location.pathname + location.search);
+  if (t) { openDetail(t[1].toLowerCase(), Number(t[2])); return; }
   if (m && cloudEnabled) openListDetail(m[1]);
 }
 
@@ -1594,8 +1778,9 @@ async function boot() {
   $("setup").style.display = "none";
   $("appHeader").style.display = "";
   $("appMain").style.display = "";
-  $("appFooter").style.display = "";
   document.body.classList.add("app-on");
+  history.replaceState({ v: "discover" }, "", "");
+  if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js").catch(() => {});
   if (hasGsap && !reducedMotion) {
     gsap.from("#appHeader .logo", { y: -26, opacity: 0, duration: 0.7, ease: "power3.out", delay: 0.05, clearProps: "transform,opacity" });
     gsap.from("#appHeader .hbtn", { y: -18, opacity: 0, duration: 0.5, stagger: 0.07, delay: 0.2, clearProps: "transform,opacity" });
