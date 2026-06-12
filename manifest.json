@@ -1,7 +1,7 @@
 {
   "name": "Filmliste",
   "short_name": "Filmliste",
-  "description": "Was schauen wir heute? Filme & Serien entdecken, swipen, merken.",
+  "description": "Deine Watchlist für alles: Filme & Serien entdecken, Listen erstellen und teilen.",
   "start_url": ".",
   "display": "standalone",
   "background_color": "#0b0b0e",
