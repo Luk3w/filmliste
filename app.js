@@ -140,6 +140,24 @@ function lockScroll(on) {
   scrollLocks = Math.max(0, scrollLocks + (on ? 1 : -1));
   document.body.style.overflow = scrollLocks ? "hidden" : "";
 }
+const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent)
+  || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+const isStandalone = window.matchMedia("(display-mode: standalone)").matches || navigator.standalone === true;
+let confirmResolve = null;
+function confirmDialog(msg) {
+  return new Promise(res => {
+    confirmResolve = res;
+    $("confirmText").textContent = msg;
+    $("confirmOverlay").classList.add("open");
+    lockScroll(true);
+  });
+}
+function settleConfirm(val) {
+  if (!$("confirmOverlay").classList.contains("open")) return;
+  $("confirmOverlay").classList.remove("open");
+  lockScroll(false);
+  if (confirmResolve) { confirmResolve(val); confirmResolve = null; }
+}
 
 /* ===================== Rankings ===================== */
 const currentYear = new Date().getFullYear();
@@ -1204,13 +1222,12 @@ async function openListDetail(listId) {
     <div>
       <h2>${esc(list.name)}</h2>
       <div class="by">Liste von ${esc(list.owner_name || "anonym")} · ${(items || []).length} Titel</div>
-      ${list.description ? `<div class="desc">${esc(list.description)}</div>` : ""}
     </div>
     <div class="head-actions">
-      <button class="btn" id="shareListBtn">${icon("link", 15)} Link kopieren</button>
+      <button class="hbtn liquid" id="shareListBtn" title="Teilen">${icon("share", 17)}</button>
+      ${mine ? `<button class="hbtn liquid danger" id="deleteListBtn" title="Liste löschen">${icon("trash", 17)}</button>` : ""}
       ${!mine && session ? `<button class="btn" id="copyListBtn">${icon("copy", 15)} Zu meinen Listen</button>` : ""}
       ${!mine && !session ? `<button class="btn" id="listAuthBtn">${icon("user", 15)} Anmelden zum Übernehmen</button>` : ""}
-      ${mine ? `<button class="btn danger" id="deleteListBtn">${icon("trash", 15)} Löschen</button>` : ""}
     </div>`;
   $("shareListBtn").onclick = shareList;
   const cb = $("copyListBtn"); if (cb) cb.onclick = copyListToMine;
@@ -1223,16 +1240,17 @@ async function openListDetail(listId) {
     const card = makeCard(item, it.media_type);
     if (mine) {
       const rm = document.createElement("button");
-      rm.className = "mini-btn";
-      rm.style.margin = "0 8px 8px";
-      rm.innerHTML = `${icon("trash", 13)}<span class="lbl">Entfernen</span>`;
+      rm.className = "card-remove";
+      rm.title = "Aus Liste entfernen";
+      rm.innerHTML = icon("x", 14);
       rm.onclick = async (e) => {
         e.stopPropagation();
+        if (!(await confirmDialog(`„${it.title}“ aus der Liste entfernen?`))) return;
         await sb.from("fl_list_items").delete().match({ list_id: listId, media_type: it.media_type, tmdb_id: it.tmdb_id });
         card.remove();
         toast("Entfernt");
       };
-      card.appendChild(rm);
+      card.querySelector(".poster-wrap").appendChild(rm);
     }
     observeReveal(card, i);
     grid.appendChild(card);
@@ -1240,10 +1258,15 @@ async function openListDetail(listId) {
 }
 function shareList() {
   const url = location.origin + location.pathname + "#list=" + currentList.list.id;
-  navigator.clipboard.writeText(url).then(
-    () => toast("Link kopiert – einfach an Freunde schicken"),
-    () => prompt("Link zum Teilen:", url)
-  );
+  const data = { title: "Filmliste", text: currentList.list.name, url };
+  if (navigator.share) {
+    navigator.share(data).catch(() => {});
+  } else {
+    navigator.clipboard.writeText(url).then(
+      () => toast("Link kopiert – einfach an Freunde schicken"),
+      () => prompt("Link zum Teilen:", url)
+    );
+  }
 }
 async function copyListToMine() {
   const src = currentList.list;
@@ -1264,7 +1287,7 @@ async function copyListToMine() {
   openListDetail(newList.id);
 }
 async function deleteList() {
-  if (!confirm("Liste „" + currentList.list.name + "“ wirklich löschen?")) return;
+  if (!(await confirmDialog(`Die Liste „${currentList.list.name}“ wird dauerhaft gelöscht – auch für alle, die den Link haben.`))) return;
   await sb.from("fl_lists").delete().eq("id", currentList.list.id);
   myLists = myLists.filter(l => l.id !== currentList.list.id);
   dashDirty = true;
@@ -1616,6 +1639,8 @@ async function ensureProviders() {
 async function renderSettings() {
   const row = $("installRow");
   if (row) row.style.display = deferredPrompt ? "" : "none";
+  // iOS hat kein beforeinstallprompt – stattdessen Anleitung zeigen
+  $("iosInstallRow").style.display = (isIOS && !isStandalone) ? "" : "none";
   await Promise.all([ensureAllGenres(), ensureProviders()]);
   renderPrefs();
 }
@@ -1775,7 +1800,7 @@ function wireEvents() {
   $("sheetOverlay").addEventListener("click", e => { if (e.target === $("sheetOverlay")) closeSheet(); });
   $("authOverlay").addEventListener("click", e => { if (e.target === $("authOverlay")) closeAuth(); });
   $("newListOverlay").addEventListener("click", e => { if (e.target === $("newListOverlay")) closeNewList(); });
-  document.addEventListener("keydown", e => { if (e.key === "Escape") { closeSheet(); closeAuth(); closeNewList(); closeFilter(); closeTrailer(); } });
+  document.addEventListener("keydown", e => { if (e.key === "Escape") { closeSheet(); closeAuth(); closeNewList(); closeFilter(); closeTrailer(); settleConfirm(false); } });
   document.addEventListener("click", e => { if (!$("acctWrap").contains(e.target)) closeMenu(); });
   let lastScrollY = 0;
   window.addEventListener("scroll", () => {
@@ -1818,10 +1843,14 @@ function wireEvents() {
   $("tutDone").onclick = closeTutorial;
   $("trailerClose").onclick = closeTrailer;
   $("trailerOverlay").addEventListener("click", e => { if (e.target === $("trailerOverlay")) closeTrailer(); });
+  $("confirmYes").onclick = () => settleConfirm(true);
+  $("confirmNo").onclick = () => settleConfirm(false);
+  $("confirmOverlay").addEventListener("click", e => { if (e.target === $("confirmOverlay")) settleConfirm(false); });
 
   // History: Hardware-Zurück schließt erst Overlays/Sheet, dann Views – statt die Seite zu zerlegen
   window.addEventListener("popstate", (e) => {
     closeTrailer();
+    settleConfirm(false);
     if (sheetOpenFlag) { closeSheet(true); return; }
     closeAuth(); closeNewList(); closeFilter();
     switchView((e.state && e.state.v) || "discover", true);

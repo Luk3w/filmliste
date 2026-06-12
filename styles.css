@@ -26,6 +26,7 @@
   --safe-b: env(safe-area-inset-bottom, 0px);
 }
 * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+button, .chip, .qpill, .tab { touch-action: manipulation; }
 html { scrollbar-color: #2a2a32 var(--bg); }
 body {
   background: var(--bg);
@@ -401,6 +402,16 @@ select:focus, input:focus { border-color: rgba(255,255,255,0.4); }
 .badge.watch { right: 8px; background: rgba(229,9,20,0.92); color: #fff; display: none; padding: 4px 5px; }
 .card.is-seen .badge.seen { display: inline-flex; }
 .card.is-watch:not(.is-seen) .badge.watch { display: inline-flex; }
+.card-remove {
+  position: absolute; bottom: 8px; right: 8px; width: 32px; height: 32px;
+  border-radius: 50%; border: 1px solid var(--line-strong); cursor: pointer;
+  background: rgba(10,10,14,0.75); color: #ff8589;
+  display: flex; align-items: center; justify-content: center;
+  backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+  transition: transform 0.12s;
+}
+.card-remove:active { transform: scale(0.85); }
+.hbtn.danger { color: #ff8589; }
 .card.no-seen-badge .badge.seen, .card.no-watch-badge .badge.watch { display: none !important; }
 .card.no-seen-badge.is-seen img.poster { opacity: 1; filter: none; }
 
@@ -411,6 +422,7 @@ select:focus, input:focus { border-color: rgba(255,255,255,0.4); }
 /* ============ Swipe ============ */
 #view-swipe {
   position: relative; display: flex; flex-direction: column;
+  height: calc(100vh - var(--nav-h) - var(--safe-b)); /* Fallback ältere iOS-Safari */
   height: calc(100dvh - var(--nav-h) - var(--safe-b)); min-height: 500px;
   padding-top: 64px; overflow: hidden;
 }
@@ -432,6 +444,7 @@ select:focus, input:focus { border-color: rgba(255,255,255,0.4); }
 .deck { position: absolute; inset: 0; }
 .deck-card {
   position: absolute; inset: 0; margin: auto;
+  width: min(90vw, calc((100vh - 200px) * 0.62), 400px);
   width: min(90vw, calc((100dvh - 200px) * 0.62), 400px);
   aspect-ratio: 2/3; height: auto;
   border-radius: var(--r-lg); overflow: hidden;
@@ -486,7 +499,7 @@ select:focus, input:focus { border-color: rgba(255,255,255,0.4); }
 .tut-overlay {
   position: absolute; inset: 0; z-index: 20; background: rgba(8,8,11,0.92);
   display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 26px;
-  padding: 24px; backdrop-filter: blur(6px);
+  padding: 24px; backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
 }
 .tut-card-zone { position: relative; width: 150px; height: 215px; }
 .tut-ghost {
@@ -515,8 +528,8 @@ select:focus, input:focus { border-color: rgba(255,255,255,0.4); }
 }
 .list-head h2 { font-size: 1.3rem; font-weight: 900; letter-spacing: -0.3px; }
 .list-head .by { color: var(--faint); font-size: 0.82rem; margin-top: 4px; }
-.list-head .desc { color: var(--muted); font-size: 0.9rem; margin-top: 8px; max-width: 600px; line-height: 1.6; }
-.list-head .head-actions { margin-left: auto; display: flex; gap: 8px; flex-wrap: wrap; }
+.list-head .head-actions { margin-left: auto; display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.list-head .head-actions .hbtn { background: rgba(255,255,255,0.07); }
 .lists-grid { display: grid; grid-template-columns: 1fr; gap: 12px; }
 .list-card {
   border-radius: var(--r-lg); padding: 18px 20px; cursor: pointer;
@@ -528,10 +541,10 @@ select:focus, input:focus { border-color: rgba(255,255,255,0.4); }
 .list-card .sub { color: var(--faint); font-size: 0.8rem; }
 
 /* ============ Sheet (Detail) ============ */
-.sheet-overlay { position: fixed; inset: 0; background: rgba(4,4,7,0.72); z-index: 100; display: none; backdrop-filter: blur(3px); }
+.sheet-overlay { position: fixed; inset: 0; background: rgba(4,4,7,0.72); z-index: 100; display: none; backdrop-filter: blur(3px); -webkit-backdrop-filter: blur(3px); }
 .sheet-overlay.open { display: block; }
 .sheet {
-  position: absolute; left: 0; right: 0; bottom: 0; top: 6dvh;
+  position: absolute; left: 0; right: 0; bottom: 0; top: 6vh; top: 6dvh;
   background: var(--bg2); border-radius: 22px 22px 0 0;
   border: 1px solid var(--line-strong); border-bottom: none;
   display: flex; flex-direction: column; overflow: hidden;
@@ -613,7 +626,7 @@ select:focus, input:focus { border-color: rgba(255,255,255,0.4); }
 .modal-overlay.bottomish { align-items: flex-end; padding: 0; }
 .modal-overlay.bottomish .dialog {
   max-width: none; border-radius: 24px 24px 0 0; padding: 12px 22px calc(26px + var(--safe-b));
-  max-height: 92dvh; overflow-y: auto;
+  max-height: 92vh; max-height: 92dvh; overflow-y: auto;
 }
 .modal-overlay.bottomish .dialog.liquid {
   background: linear-gradient(150deg, rgba(22,22,30,0.62), rgba(14,14,20,0.58));
@@ -733,4 +746,9 @@ footer a { color: var(--muted); }
   .chips.scroll-x { flex-wrap: wrap; overflow: visible; margin: 0 0 14px; padding: 0; }
   .edge-label.left { left: calc(50% - 320px); }
   .edge-label.right { right: calc(50% - 320px); }
+}
+
+/* iOS-Safari zoomt bei Inputs < 16px automatisch hinein – mobil deshalb mind. 16px */
+@media (max-width: 767px) {
+  select, input[type="text"], input[type="email"], input[type="password"] { font-size: 16px; }
 }

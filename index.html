@@ -11,6 +11,7 @@
 <meta property="og:image" content="app-icon.png">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Filmliste">
 <link rel="manifest" href="manifest.json">
 <link rel="icon" href="app-icon.png?v=2" type="image/png">
 <link rel="shortcut icon" href="app-icon.png?v=2" type="image/png">
@@ -246,6 +247,9 @@
       <div class="set-row" id="installRow" style="display:none">
         <button class="btn primary" id="installBtn"><span data-ic="down"></span> Als App installieren</button>
       </div>
+      <p class="set-hint" id="iosInstallRow" style="display:none">
+        Auf iPhone/iPad: In Safari unten das <b>Teilen-Symbol</b> antippen und <b>„Zum Home-Bildschirm“</b> wählen – dann läuft Filmliste wie eine echte App.
+      </p>
       <div class="set-row">
         <button class="btn" id="exportBtn"><span data-ic="down"></span> Backup exportieren</button>
         <button class="btn" id="importBtn"><span data-ic="up"></span> Backup importieren</button>
@@ -341,6 +345,19 @@
     <input type="text" id="newListName" placeholder="Name, z.B. Filmabend-Favoriten" maxlength="80">
     <input type="text" id="newListDesc" placeholder="Beschreibung (optional)" maxlength="200">
     <button class="btn primary" style="width:100%" id="createListBtn">Liste erstellen</button>
+  </div>
+</div>
+
+<!-- ====== Bestätigungs-Dialog ====== -->
+<div class="modal-overlay" id="confirmOverlay">
+  <div class="dialog">
+    <h2>Bist du sicher?</h2>
+    <p id="confirmText"></p>
+    <div class="set-row" style="margin-top:14px">
+      <button class="btn ghost" id="confirmNo">Abbrechen</button>
+      <div class="spacer"></div>
+      <button class="btn primary" id="confirmYes">Löschen</button>
+    </div>
   </div>
 </div>
 
