@@ -48,6 +48,7 @@ const I = {
   copy: '<rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>',
   film: '<rect x="2" y="2" width="20" height="20" rx="2.5"/><line x1="7" y1="2" x2="7" y2="22"/><line x1="17" y1="2" x2="17" y2="22"/><line x1="2" y1="12" x2="22" y2="12"/>',
   back: '<polyline points="15 18 9 12 15 6"/>',
+  compass: '<circle cx="12" cy="12" r="10"/><polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76" fill="currentColor" stroke="none"/>',
   cards: '<rect x="3" y="6" width="13" height="16" rx="2" transform="rotate(-8 9.5 14)"/><rect x="9" y="4" width="13" height="16" rx="2" transform="rotate(6 15.5 12)"/>',
   info: '<circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/>',
   play: '<polygon points="6 3 20 12 6 21 6 3" fill="currentColor" stroke="none"/>',
@@ -124,6 +125,7 @@ let deferredPrompt = null;
 let gridBuffer = [];
 let gridTotalPages = 1;
 let gridLoading = false;
+let dashDirty = false;
 
 function persist() { localStorage.setItem("fl_store", JSON.stringify(store)); updateCounts(); }
 function persistSkips() { localStorage.setItem("fl_skip", JSON.stringify([...skipped].slice(-600))); }
@@ -133,6 +135,11 @@ function keyOf(type, id) { return type + "_" + id; }
 function esc(s) { return String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c])); }
 function matchPct(v) { return v ? Math.round(v * 10) + " %" : null; }
 function $(id) { return document.getElementById(id); }
+let scrollLocks = 0;
+function lockScroll(on) {
+  scrollLocks = Math.max(0, scrollLocks + (on ? 1 : -1));
+  document.body.style.overflow = scrollLocks ? "hidden" : "";
+}
 
 /* ===================== Rankings ===================== */
 const currentYear = new Date().getFullYear();
@@ -209,8 +216,13 @@ function switchView(v, fromPop = false) {
   if (!fromPop && prev !== v) history.pushState({ v }, "", "");
   if (prev === "settings" && v !== "settings" && prefsDirty) {
     prefsDirty = false;
+    dashDirty = false;
     buildDashboard();
     resetDeck();
+  }
+  if (v === "discover" && dashDirty) {
+    dashDirty = false;
+    buildDashboard();
   }
   const navTarget = v === "listdetail" ? "library" : (v === "grid" || v === "settings" ? "discover" : v);
   document.querySelectorAll(".tab").forEach(t => t.classList.toggle("active", t.dataset.view === navTarget));
@@ -239,7 +251,6 @@ async function buildDashboard() {
   $("rows").innerHTML = "";
   try {
     await ensureAllGenres();
-    renderQuickGenres();
     const trend = await api("/trending/" + curType + "/week");
     const visible = trend.results.filter(x => !isHidden(x));
     bbItems = visible.filter(x => x.backdrop_path).slice(0, 6);
@@ -315,10 +326,11 @@ function showBillboard(i, instant) {
   } else apply();
 }
 function updateBbSave() {
+  const el = $("bbSave");
   const item = bbItems[bbIdx];
-  if (!item) return;
+  if (!el || !item) return;
   const k = keyOf(curType, item.id);
-  $("bbSave").innerHTML = store.watch[k]
+  el.innerHTML = store.watch[k]
     ? `${icon("check", 16)} Gemerkt`
     : `${icon("bookmark", 16)} Speichern`;
 }
@@ -494,7 +506,6 @@ function openGrid(rankId) {
   curPage = 1;
   $("gridTitle").textContent = RANKS.find(r => r.id === rankId).label;
   switchView("grid");
-  renderGridGenrePills();
   renderGrid(true);
 }
 async function loadTypeGenres() {
@@ -524,6 +535,10 @@ async function renderGridGenrePills() {
 function renderActiveFilters() {
   const bar = $("activeFilters");
   const parts = [];
+  if (curGenre) {
+    const g = (allGenres || []).find(x => x.id === curGenre);
+    parts.push({ label: g ? g.name : "Genre", clear: () => { curGenre = null; } });
+  }
   if (gFilter.minScore) parts.push({ label: "★ ≥ " + gFilter.minScore, clear: () => { gFilter.minScore = 0; } });
   for (const pid of gFilter.providers) {
     const p = (providersCache || []).find(x => x.id === pid);
@@ -587,6 +602,12 @@ async function renderGrid(reset) {
     spin.textContent = "Fehler beim Laden.";
   }
   gridLoading = false;
+  // IO neu anstoßen: feuert sonst nicht erneut, wenn der Sentinel im Margin sichtbar BLEIBT
+  if (gridIO && curView === "grid" && curPage < gridTotalPages) {
+    const s = $("gridSentinel");
+    gridIO.unobserve(s);
+    gridIO.observe(s);
+  }
 }
 function flushGridBuffer(final) {
   const grid = $("discoverGrid");
@@ -613,6 +634,7 @@ const gridIO = ("IntersectionObserver" in window) ? new IntersectionObserver(ent
 async function doSearch() {
   const q = $("searchInput").value.trim();
   if (!q) return;
+  $("searchInput").blur(); // Tastatur einklappen
   const grid = $("searchGrid");
   $("searchEmpty").style.display = "none";
   grid.innerHTML = "<div class='spinner'>Suche …</div>";
@@ -767,7 +789,7 @@ async function cloudLoad() {
 let sheetOpenFlag = false;
 function openSheet() {
   $("sheetOverlay").classList.add("open");
-  document.body.style.overflow = "hidden";
+  lockScroll(true);
   sheetOpenFlag = true;
   history.pushState({ v: curView, sheet: 1 }, "", "");
   const sheet = $("sheet");
@@ -783,10 +805,9 @@ function closeSheet(viaPop = false) {
   const sheet = $("sheet");
   const done = () => {
     $("sheetOverlay").classList.remove("open");
-    document.body.style.overflow = "";
+    lockScroll(false);
     sheetOpenFlag = false;
-    $("trailerFrame").src = "";
-    $("trailerOverlay").classList.remove("open");
+    closeTrailer();
   };
   if (hasGsap && isMobile() && !reducedMotion) {
     gsap.to(sheet, { y: "100%", duration: 0.3, ease: "power2.in", onComplete: done });
@@ -914,20 +935,39 @@ function initSheetDrag() {
 function openTrailer(key) {
   $("trailerFrame").src = "https://www.youtube-nocookie.com/embed/" + encodeURIComponent(key) + "?autoplay=1&rel=0&playsinline=1";
   $("trailerOverlay").classList.add("open");
+  lockScroll(true);
 }
 function closeTrailer() {
+  if (!$("trailerOverlay").classList.contains("open")) return;
   $("trailerOverlay").classList.remove("open");
   $("trailerFrame").src = "";
+  lockScroll(false);
 }
 
 /* ===================== Filter-Sheet ===================== */
 let filterCtx = "grid";
 async function openFilter(ctx) {
   filterCtx = ctx;
-  $("filterOverlay").classList.add("open");
+  if (!$("filterOverlay").classList.contains("open")) {
+    $("filterOverlay").classList.add("open");
+    lockScroll(true);
+  }
   $("fScore").value = gFilter.minScore || 0;
   $("fScoreVal").textContent = gFilter.minScore ? "★ " + gFilter.minScore : "Aus";
   $("fHideSeen").checked = !!gFilter.hideSeen;
+  // Genres (Single-Select)
+  const gWrap = $("fGenres");
+  const genres = await loadTypeGenres().catch(() => []);
+  gWrap.innerHTML = "";
+  for (const g of genres) {
+    const on = curGenre === g.id;
+    const c = document.createElement("div");
+    c.className = "chip" + (on ? " active" : "");
+    c.innerHTML = `${icon(genreIcon(g.id), 13)} ${esc(g.name)}`;
+    c.onclick = () => { curGenre = on ? null : g.id; openFilter(filterCtx); };
+    gWrap.appendChild(c);
+  }
+  // Plattformen (Multi-Select)
   await ensureProviders();
   const wrap = $("fProviders");
   wrap.innerHTML = "";
@@ -943,7 +983,11 @@ async function openFilter(ctx) {
     wrap.appendChild(c);
   }
 }
-function closeFilter() { $("filterOverlay").classList.remove("open"); }
+function closeFilter() {
+  if (!$("filterOverlay").classList.contains("open")) return;
+  $("filterOverlay").classList.remove("open");
+  lockScroll(false);
+}
 function applyFilter() {
   gFilter.minScore = parseFloat($("fScore").value) || 0;
   gFilter.hideSeen = $("fHideSeen").checked;
@@ -954,6 +998,7 @@ function applyFilter() {
 }
 function resetFilter() {
   gFilter = { minScore: 0, providers: [], hideSeen: false };
+  curGenre = null;
   saveFilter();
   openFilter(filterCtx);
 }
@@ -1007,8 +1052,13 @@ function importData(ev) {
 function openAuth() {
   if (!cloudEnabled) { toast("Konten sind gerade nicht verfügbar."); return; }
   $("authOverlay").classList.add("open");
+  lockScroll(true);
 }
-function closeAuth() { $("authOverlay").classList.remove("open"); }
+function closeAuth() {
+  if (!$("authOverlay").classList.contains("open")) return;
+  $("authOverlay").classList.remove("open");
+  lockScroll(false);
+}
 async function googleLogin() {
   const { error } = await sb.auth.signInWithOAuth({
     provider: "google",
@@ -1091,9 +1141,14 @@ async function renderListsTab() {
 function openNewList() {
   if (!session) { openAuth(); return; }
   $("newListOverlay").classList.add("open");
+  lockScroll(true);
   $("newListName").focus();
 }
-function closeNewList() { $("newListOverlay").classList.remove("open"); }
+function closeNewList() {
+  if (!$("newListOverlay").classList.contains("open")) return;
+  $("newListOverlay").classList.remove("open");
+  lockScroll(false);
+}
 function ownerName() {
   return (session.user.user_metadata && (session.user.user_metadata.name || session.user.user_metadata.full_name)) || (session.user.email || "").split("@")[0];
 }
@@ -1106,6 +1161,7 @@ async function createList() {
   closeNewList();
   $("newListName").value = ""; $("newListDesc").value = "";
   toast("Liste erstellt");
+  dashDirty = true;
   renderListsTab();
 }
 async function addCurrentToList() {
@@ -1189,11 +1245,15 @@ async function copyListToMine() {
     })));
   }
   toast("Liste übernommen");
+  await loadMyLists();
+  dashDirty = true;
   openListDetail(newList.id);
 }
 async function deleteList() {
   if (!confirm("Liste „" + currentList.list.name + "“ wirklich löschen?")) return;
   await sb.from("fl_lists").delete().eq("id", currentList.list.id);
+  myLists = myLists.filter(l => l.id !== currentList.list.id);
+  dashDirty = true;
   toast("Liste gelöscht");
   curLib = "lists";
   switchView("library");
@@ -1223,6 +1283,7 @@ async function shareLibrary() {
       title: r.title, poster_path: r.poster_path, vote_average: r.vote_average, year: r.date
     }));
     if (rows.length) await sb.from("fl_list_items").upsert(rows);
+    dashDirty = true;
     const url = location.origin + location.pathname + "#list=" + list.id;
     if (navigator.share) await navigator.share({ title: "Filmliste", text: name, url }).catch(() => {});
     else { await navigator.clipboard.writeText(url); toast("Link kopiert"); }
@@ -1665,10 +1726,6 @@ function wireEvents() {
   };
   $("saveKeyBtn").onclick = saveKey;
   document.querySelectorAll("#typePills button").forEach(b => b.onclick = () => setDashType(b.dataset.type));
-  $("bbSave").onclick = () => {
-    const item = bbItems[bbIdx];
-    if (item) { toggle("watch", item, curType); updateBbSave(); }
-  };
   $("bbInfo").onclick = () => { const item = bbItems[bbIdx]; if (item) openDetail(curType, item.id); };
   $("gridBack").onclick = () => history.back();
   $("gridFilterBtn").onclick = () => openFilter("grid");
@@ -1684,6 +1741,16 @@ function wireEvents() {
   $("shareLibBtn").onclick = shareLibrary;
   $("searchBtn").onclick = doSearch;
   $("searchInput").addEventListener("keydown", e => { if (e.key === "Enter") doSearch(); });
+  $("searchInput").addEventListener("input", () => {
+    $("searchClear").style.display = $("searchInput").value ? "flex" : "none";
+  });
+  $("searchClear").onclick = () => {
+    $("searchInput").value = "";
+    $("searchClear").style.display = "none";
+    $("searchGrid").innerHTML = "";
+    $("searchEmpty").style.display = "";
+    $("searchInput").focus();
+  };
   $("newListBtn").onclick = openNewList;
   $("backToLists").onclick = () => { curLib = "lists"; switchView("library"); history.replaceState(null, "", location.pathname + location.search); };
   $("createListBtn").onclick = createList;
@@ -1784,7 +1851,7 @@ async function boot() {
   if (hasGsap && !reducedMotion) {
     gsap.from("#appHeader .logo", { y: -26, opacity: 0, duration: 0.7, ease: "power3.out", delay: 0.05, clearProps: "transform,opacity" });
     gsap.from("#appHeader .hbtn", { y: -18, opacity: 0, duration: 0.5, stagger: 0.07, delay: 0.2, clearProps: "transform,opacity" });
-    gsap.from("#bottomNav button", { y: 22, opacity: 0, duration: 0.5, stagger: 0.08, delay: 0.3, ease: "back.out(1.6)", clearProps: "transform,opacity" });
+    gsap.from("#bottomNav button", { scale: 0.4, opacity: 0, duration: 0.45, stagger: 0.06, delay: 0.25, ease: "back.out(2)", clearProps: "transform,opacity" });
   }
   renderTabs();
   wireEvents();

@@ -106,8 +106,7 @@
             <p class="bb-overview" id="bbOverview"></p>
             <div class="bb-rating" id="bbRating"></div>
             <div class="bb-actions">
-              <button class="btn primary" id="bbInfo"><span data-ic="play" data-size="13"></span> Details</button>
-              <button class="btn glass liquid" id="bbSave"><span data-ic="bookmark" data-size="15"></span> Speichern</button>
+              <button class="btn primary" id="bbInfo"><span data-ic="play" data-size="13"></span> Details ansehen</button>
             </div>
           </div>
           <div class="bb-right">
@@ -129,7 +128,6 @@
       <div class="spacer"></div>
       <button class="hbtn liquid" id="gridFilterBtn" title="Filter"><span data-ic="sliders" data-size="18"></span></button>
     </div>
-    <div class="quick-genres inpage" id="gridGenrePills"></div>
     <div class="chips" id="activeFilters" style="display:none"></div>
     <div class="grid" id="discoverGrid"></div>
     <div class="spinner" id="discoverSpinner" style="display:none">Lade …</div>
@@ -183,29 +181,32 @@
   <!-- ====== Suche ====== -->
   <section id="view-search" style="display:none">
     <div class="controls">
-      <input type="text" id="searchInput" style="flex:1;min-width:160px" placeholder="Titel, z.B. Oppenheimer …">
-      <button class="btn primary" id="searchBtn"><span data-ic="search"></span></button>
+      <div class="search-wrap">
+        <input type="text" id="searchInput" placeholder="Titel, z.B. Oppenheimer …" autocomplete="off">
+        <button class="s-clear" id="searchClear" style="display:none" title="Leeren"><span data-ic="x" data-size="15"></span></button>
+      </div>
+      <button class="btn primary" id="searchBtn">Suchen</button>
     </div>
     <div class="grid" id="searchGrid"></div>
-    <div class="empty" id="searchEmpty"><div class="ico-big" data-ic="search"></div>Durchsuche Millionen Filme &amp; Serien.</div>
+    <div class="empty" id="searchEmpty">Durchsuche Millionen Filme &amp; Serien.</div>
   </section>
 
   <!-- ====== Bibliothek ====== -->
   <section id="view-library" style="display:none">
-    <div class="controls">
-      <div class="seg" id="libSeg">
-        <button class="active" data-lib="watch">Merkliste <span id="countWatch" class="seg-count">0</span></button>
-        <button data-lib="seen">Gesehen <span id="countSeen" class="seg-count">0</span></button>
-        <button data-lib="lists">Listen</button>
+    <div class="controls lib-tabs">
+      <div class="tabs-row" id="libSeg">
+        <button class="qpill liquid active" data-lib="watch"><span data-ic="bookmark" data-size="15"></span>Merkliste <span id="countWatch" class="seg-count">0</span></button>
+        <button class="qpill liquid" data-lib="seen"><span data-ic="check" data-size="15"></span>Gesehen <span id="countSeen" class="seg-count">0</span></button>
+        <button class="qpill liquid" data-lib="lists"><span data-ic="list" data-size="15"></span>Listen</button>
       </div>
       <div class="spacer"></div>
-      <button class="hbtn liquid" id="shareLibBtn" title="Teilen"><span data-ic="share" data-size="17"></span></button>
-      <button class="btn primary" id="newListBtn" style="display:none"><span data-ic="plus"></span> Neue Liste</button>
+      <button class="qpill liquid" id="shareLibBtn"><span data-ic="share" data-size="15"></span>Teilen</button>
     </div>
     <div class="grid" id="libraryGrid"></div>
     <div class="lists-grid" id="listsGrid" style="display:none"></div>
     <div class="empty" id="libraryEmpty" style="display:none"></div>
     <div class="empty" id="listsEmpty" style="display:none"></div>
+    <button class="btn primary load-more" id="newListBtn" style="display:none"><span data-ic="plus"></span> Neue Liste</button>
   </section>
 
   <section id="view-listdetail" style="display:none">
@@ -277,8 +278,12 @@
 <!-- ====== Filter-Sheet ====== -->
 <div class="modal-overlay bottomish" id="filterOverlay">
   <div class="dialog liquid">
+    <div class="drag-dash"></div>
     <button class="close" id="filterClose"><span data-ic="x"></span></button>
     <h2>Filter</h2>
+
+    <div class="section-label">Genre</div>
+    <div class="chips scroll-y" id="fGenres"><div class="spinner" style="padding:8px">Lade …</div></div>
 
     <div class="section-label">Mindest-Bewertung</div>
     <div class="score-row">
