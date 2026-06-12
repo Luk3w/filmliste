@@ -299,8 +299,7 @@ function showBillboard(i, instant) {
       <span>${curType === "tv" ? "Serie" : "Film"}</span>`;
     $("bbOverview").textContent = item.overview || "";
     $("bbRating").innerHTML = item.vote_average ? `
-      <span class="star"><span style="color:var(--red);display:inline-flex">${icon("star", 15)}</span> ${item.vote_average.toFixed(1).replace(".", ",")}</span>
-      <span class="match">${matchPct(item.vote_average)} Match</span>` : "";
+      <span class="star"><span style="color:var(--red);display:inline-flex">${icon("star", 16)}</span> ${item.vote_average.toFixed(1).replace(".", ",")}</span>` : "";
     if (item.poster_path) {
       const p = $("bbPoster");
       if (hasGsap && !reducedMotion) {
@@ -952,9 +951,22 @@ async function openFilter(ctx) {
     $("filterOverlay").classList.add("open");
     lockScroll(true);
   }
-  $("fScore").value = gFilter.minScore || 0;
-  $("fScoreVal").textContent = gFilter.minScore ? "★ " + gFilter.minScore : "Aus";
   $("fHideSeen").checked = !!gFilter.hideSeen;
+  // Mindest-Bewertung als Sterne (1 Stern = 2.0 TMDB-Punkte)
+  const starWrap = $("fStars");
+  starWrap.innerHTML = "";
+  const curStars = Math.round((gFilter.minScore || 0) / 2);
+  for (let i = 1; i <= 5; i++) {
+    const b = document.createElement("button");
+    b.className = "star-btn" + (i <= curStars ? " on" : "");
+    b.innerHTML = icon("star", 27);
+    b.onclick = () => { gFilter.minScore = (curStars === i) ? 0 : i * 2; openFilter(filterCtx); };
+    starWrap.appendChild(b);
+  }
+  const lbl = document.createElement("span");
+  lbl.className = "score-val";
+  lbl.textContent = gFilter.minScore ? "≥ " + gFilter.minScore.toFixed(1).replace(".", ",") : "Aus";
+  starWrap.appendChild(lbl);
   // Genres (Single-Select)
   const gWrap = $("fGenres");
   const genres = await loadTypeGenres().catch(() => []);
@@ -989,7 +1001,6 @@ function closeFilter() {
   lockScroll(false);
 }
 function applyFilter() {
-  gFilter.minScore = parseFloat($("fScore").value) || 0;
   gFilter.hideSeen = $("fHideSeen").checked;
   saveFilter();
   closeFilter();
@@ -1123,12 +1134,15 @@ async function renderListsTab() {
     $("listsLoginBtn").onclick = openAuth;
     return;
   }
+  empty.innerHTML = "<div class='spinner' style='padding:14px'>Lade Listen …</div>";
+  empty.style.display = "";
   await loadMyLists();
   if (!myLists.length) {
     empty.innerHTML = `<div class="ico-big">${icon("list", 44)}</div>Noch keine Listen.<br>Erstelle z.B. „Filmabend-Favoriten“ und teile sie per Link.`;
     empty.style.display = ""; return;
   }
   empty.style.display = "none";
+  empty.innerHTML = "";
   for (const l of myLists) {
     const { count } = await sb.from("fl_list_items").select("*", { count: "exact", head: true }).eq("list_id", l.id);
     const card = document.createElement("div");
@@ -1733,7 +1747,6 @@ function wireEvents() {
   $("filterClose").onclick = closeFilter;
   $("filterApply").onclick = applyFilter;
   $("filterReset").onclick = resetFilter;
-  $("fScore").oninput = () => { const v = parseFloat($("fScore").value); $("fScoreVal").textContent = v ? "★ " + v : "Aus"; };
   $("filterOverlay").addEventListener("click", e => { if (e.target === $("filterOverlay")) closeFilter(); });
   $("loadMoreBtn").onclick = () => { curPage++; renderGrid(false); };
   if (gridIO) gridIO.observe($("gridSentinel"));

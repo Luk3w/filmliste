@@ -90,10 +90,13 @@
       <div class="bb-fade"></div>
 
       <div class="quick-genres" id="quickGenres">
-        <button class="qpill liquid static" id="filterBtn"><span data-ic="sliders" data-size="14"></span>Filter</button>
-        <div class="seg small glassy" id="typePills" style="flex:0 0 auto">
-          <button class="active" data-type="movie">Filme</button>
-          <button data-type="tv">Serien</button>
+        <div class="ctrl-bar liquid">
+          <button class="ctrl-filter" id="filterBtn"><span data-ic="sliders" data-size="15"></span>Filter</button>
+          <span class="ctrl-div"></span>
+          <div class="ctrl-seg" id="typePills">
+            <button class="active" data-type="movie">Filme</button>
+            <button data-type="tv">Serien</button>
+          </div>
         </div>
       </div>
 
@@ -199,8 +202,7 @@
         <button class="qpill liquid" data-lib="seen"><span data-ic="check" data-size="15"></span>Gesehen <span id="countSeen" class="seg-count">0</span></button>
         <button class="qpill liquid" data-lib="lists"><span data-ic="list" data-size="15"></span>Listen</button>
       </div>
-      <div class="spacer"></div>
-      <button class="qpill liquid" id="shareLibBtn"><span data-ic="share" data-size="15"></span>Teilen</button>
+      <button class="hbtn liquid" id="shareLibBtn" title="Liste teilen"><span data-ic="share" data-size="17"></span></button>
     </div>
     <div class="grid" id="libraryGrid"></div>
     <div class="lists-grid" id="listsGrid" style="display:none"></div>
@@ -286,17 +288,17 @@
     <div class="chips scroll-y" id="fGenres"><div class="spinner" style="padding:8px">Lade …</div></div>
 
     <div class="section-label">Mindest-Bewertung</div>
-    <div class="score-row">
-      <input type="range" id="fScore" min="0" max="9" step="0.5" value="0">
-      <span id="fScoreVal" class="score-val">Aus</span>
-    </div>
+    <div class="star-row" id="fStars"></div>
 
     <div class="section-label">Plattform</div>
     <div class="chips" id="fProviders"><div class="spinner" style="padding:8px">Lade …</div></div>
 
-    <label class="check" style="margin:14px 0 4px"><input type="checkbox" id="fHideSeen"> Gesehenes ausblenden</label>
+    <div class="f-row">
+      <span>Gesehenes ausblenden</span>
+      <label class="check"><input type="checkbox" id="fHideSeen"></label>
+    </div>
 
-    <div class="set-row" style="margin-top:16px">
+    <div class="set-row" style="margin-top:18px">
       <button class="btn ghost" id="filterReset">Zurücksetzen</button>
       <div class="spacer"></div>
       <button class="btn primary" id="filterApply">Anwenden</button>
