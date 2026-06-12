@@ -143,6 +143,13 @@ main { padding: 0 0 calc(var(--nav-h) + var(--safe-b) + 16px); position: relativ
 }
 button.qpill { font-family: inherit; cursor: pointer; }
 .ctrl-bar { display: inline-flex; align-items: center; flex: 0 0 auto; border-radius: 26px; padding: 4px; }
+/* Weicher Rundum-Halo statt harter Schattenkante über dem Billboard */
+.ctrl-bar.liquid {
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,0.22),
+    inset 0 -1px 1px rgba(255,255,255,0.05),
+    0 0 30px 8px rgba(0,0,0,0.32);
+}
 .ctrl-filter {
   display: inline-flex; align-items: center; gap: 7px; background: none; border: none; cursor: pointer;
   color: var(--text); font-weight: 700; font-size: 0.85rem; padding: 8px 14px; border-radius: 20px;
@@ -241,9 +248,25 @@ button.qpill { font-family: inherit; cursor: pointer; }
   box-shadow: 0 26px 60px rgba(0,0,0,0.65);
   will-change: transform, opacity; background: var(--panel);
 }
-.bb-dots { display: flex; gap: 6px; margin-top: 28px; margin-bottom: 10px; justify-content: center; }
-.bb-dots span { width: 14px; height: 3px; border-radius: 2px; background: rgba(255,255,255,0.22); transition: all 0.3s; }
-.bb-dots span.on { background: var(--red); width: 26px; }
+.bb-dots { display: flex; gap: 7px; margin-top: 28px; margin-bottom: 10px; justify-content: center; align-items: center; }
+.bb-dots span {
+  width: 7px; height: 7px; border-radius: 50%; cursor: pointer;
+  background: rgba(255,255,255,0.26); border: 1px solid rgba(255,255,255,0.14);
+  position: relative; overflow: hidden;
+  transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1), background 0.3s;
+}
+.bb-dots span.on {
+  width: 40px; border-radius: 5px;
+  background: rgba(255,255,255,0.14);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.18);
+}
+.bb-dots span.on::after {
+  content: ""; position: absolute; inset: 0; width: 0; border-radius: inherit;
+  background: linear-gradient(90deg, var(--red), #ff4d55);
+  box-shadow: 0 0 10px rgba(229,9,20,0.55);
+  animation: dotfill 8s linear forwards;
+}
+@keyframes dotfill { to { width: 100%; } }
 
 /* ============ Buttons ============ */
 .btn {

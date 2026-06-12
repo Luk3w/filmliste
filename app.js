@@ -277,6 +277,7 @@ async function buildDashboard() {
     buildRows(visible.slice(0, 10));
     if (bbItems.length) {
       $("bbDots").innerHTML = bbItems.map((_, i) => `<span class="${i === 0 ? "on" : ""}"></span>`).join("");
+      [...$("bbDots").children].forEach((d, i) => d.onclick = () => { showBillboard(i); startBillboard(); });
       showBillboard(0, true);
       startBillboard();
     }
@@ -1219,6 +1220,8 @@ async function openListDetail(listId) {
   const { data: items } = await sb.from("fl_list_items").select("*").eq("list_id", listId).order("added_at");
   const mine = session && session.user.id === list.owner;
   currentList = { list, mine };
+  // Geteilte Liste ohne Login geöffnet → merken, damit sie nach dem Login direkt wieder da ist
+  if (!session) localStorage.setItem("fl_pending_list", listId);
 
   head.innerHTML = `
     <div>
@@ -1943,9 +1946,21 @@ async function boot() {
         await loadMyLists();
         toast("Angemeldet" + (s.user.email ? " als " + s.user.email : ""));
         if (curView === "library") renderLibrary();
+        // Geteilte Liste wieder öffnen (überlebt den OAuth-Redirect) bzw. Buttons neu rendern
+        const pending = localStorage.getItem("fl_pending_list");
+        if (pending) {
+          localStorage.removeItem("fl_pending_list");
+          openListDetail(pending);
+        } else if (curView === "listdetail" && currentList) {
+          openListDetail(currentList.list.id);
+        }
       }
     });
-    if (session) { await cloudLoad(); await loadMyLists(); }
+    if (session) {
+      await cloudLoad();
+      await loadMyLists();
+      localStorage.removeItem("fl_pending_list"); // bereits angemeldet → Hash-Route übernimmt
+    }
   }
   handleHashRoute();
   window.addEventListener("hashchange", handleHashRoute);
