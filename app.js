@@ -9,7 +9,9 @@ const SUPABASE_URL = "https://szoyhphyhacgjhyzrodz.supabase.co";
 const SUPABASE_ANON_KEY = "sb_publishable_fvV4E6YpI4YWeUFHOwJgEA_UknQi5RG";
 
 const IMG = "https://image.tmdb.org/t/p/";
-const REGION = "DE";
+const REGIONS = [["AT", "Österreich"], ["DE", "Deutschland"], ["CH", "Schweiz"]];
+let REGION = localStorage.getItem("fl_region") || "AT";
+function regionName() { return (REGIONS.find(r => r[0] === REGION) || REGIONS[0])[1]; }
 const LANG = "de-DE";
 
 const isMobile = () => window.matchMedia("(max-width: 767px)").matches;
@@ -893,8 +895,8 @@ async function openDetail(type, id) {
         <div class="providers">
           ${hasProv
             ? provSection("Im Abo enthalten", flat, true) + provSection("Leihen", prov.rent, false) + provSection("Kaufen", prov.buy, false)
-            : "<h3>Streaming</h3><p style='color:var(--muted);font-size:0.88rem'>Aktuell keine Streaming-Infos für Deutschland gefunden.</p>"}
-          <div class="attribution">Verfügbarkeit für Deutschland · Daten von JustWatch</div>
+            : `<h3>Streaming</h3><p style='color:var(--muted);font-size:0.88rem'>Aktuell keine Streaming-Infos für ${regionName()} gefunden.</p>`}
+          <div class="attribution">Verfügbarkeit für ${regionName()} · Daten von JustWatch</div>
         </div>
       </div>`;
 
@@ -1645,6 +1647,24 @@ async function renderSettings() {
   renderPrefs();
 }
 function renderPrefs() {
+  // Region (Single-Select)
+  const regWrap = $("prefRegion");
+  regWrap.innerHTML = "";
+  for (const [code, name] of REGIONS) {
+    const c = document.createElement("div");
+    c.className = "chip" + (REGION === code ? " active" : "");
+    c.textContent = name;
+    c.onclick = () => {
+      if (REGION === code) return;
+      REGION = code;
+      localStorage.setItem("fl_region", code);
+      providersCache = null; // Anbieterliste ist regionsabhängig
+      prefsDirty = true;
+      renderSettings();
+      toast("Region: " + name);
+    };
+    regWrap.appendChild(c);
+  }
   // Abos: ein Tipp = an/aus
   const subsWrap = $("prefSubs");
   subsWrap.innerHTML = "";

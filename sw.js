@@ -1,5 +1,5 @@
 /* Filmliste Service Worker – Shell-Cache + Offline-Fallback (Voraussetzung für PWA-Install-Prompt) */
-const CACHE = "filmliste-v8";
+const CACHE = "filmliste-v9";
 const ASSETS = ["./", "index.html", "styles.css", "app.js", "manifest.json", "app-icon.png", "icon.svg"];
 
 self.addEventListener("install", (e) => {
